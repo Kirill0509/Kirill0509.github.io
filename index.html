@@ -1,0 +1,2285 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор времени и чисел</title>
+<style>
+:root{color-scheme:light;--ink:#172a39;--muted:#62758a;--primary:#17677e;--border:#dce5ec;--sky:#f1f7fa;--accent:#fce6a6;--head:#13344d}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:linear-gradient(180deg,#f0f7fa 0,#f9fbfd 270px,#f7f9fb 100%);font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+main{max-width:1360px;margin:0 auto;padding:24px 20px 54px}
+header{margin:4px 0 23px}
+header .eyebrow{font-size:12px;font-weight:750;color:#16718a;letter-spacing:.14em;text-transform:uppercase}
+h1{font-size:clamp(25px,3.4vw,38px);line-height:1.16;letter-spacing:-.04em;margin:8px 0 10px}
+.subtitle{color:var(--muted);max-width:760px;margin:0}
+.panel{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 22px #1739580b;margin-bottom:19px;overflow:hidden}
+.panel-inner{padding:20px}
+.scenarios{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;padding:6px;background:#edf3f7;border-radius:12px;margin-bottom:21px}
+.scenario{font:inherit;font-size:13px;font-weight:670;border:0;border-radius:9px;background:transparent;color:#526b7b;cursor:pointer;min-height:45px;padding:8px}
+.scenario[aria-pressed="true"]{background:#fff;color:#074b61;box-shadow:0 2px 8px #142f4920}
+.controls{display:flex;flex-wrap:wrap;align-items:end;gap:12px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:175px;flex:1 1 220px}
+.field.small{min-width:98px;flex:0 1 108px}
+.field label{font-size:12px;font-weight:700;color:#4d6676}
+input,select{font:inherit;color:var(--ink);background:white;border:1px solid #cbd9e3;border-radius:9px;padding:10px 11px;min-height:43px;width:100%;outline:none}
+input:focus,select:focus{border-color:#19849b;box-shadow:0 0 0 3px #218fa122}
+.action{padding:11px 22px;min-height:44px;border-radius:9px;border:0;background:#0b718a;color:white;cursor:pointer;font:inherit;font-weight:750;white-space:nowrap}
+.action:hover{background:#095d72}
+.note{color:var(--muted);font-size:12px;margin-top:13px}
+.alert{padding:10px 14px;margin-top:14px;background:#fff2eb;color:#983c29;border:1px solid #f7c7b7;border-radius:8px;display:none}
+.section-header{padding:18px 20px 0;display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+h2{font-size:19px;letter-spacing:-.017em;margin:0}
+.info{color:var(--muted);font-size:13px;margin:3px 0 0}
+.count{font-size:12px;color:#0b6680;background:#e6f5f8;border-radius:999px;padding:5px 10px;font-weight:730;white-space:nowrap}
+.table-wrap{overflow:auto;max-height:68vh;scrollbar-color:#c4d4df transparent}
+table{border-collapse:separate;border-spacing:0;width:100%;white-space:nowrap;font-variant-numeric:tabular-nums}
+th{background:#ecf4f7;font-size:12px;font-weight:750;text-align:left;color:#365369;position:sticky;top:0;z-index:2}
+th,td{padding:9px 14px;border-bottom:1px solid #e8edf0}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:#f5fafb}
+.numeric{text-align:right}
+.main-number{background:#ffefba!important;color:#543d0c;font-weight:750}
+th.main-number{background:#dfad44!important;color:white}
+.degree-cell{color:#356376}
+.date-cell{color:#11677e;font-weight:740}
+.mini-table{max-width:440px;width:100%}
+.mini-table th{position:static}
+.subheading{font-size:15px;font-weight:750;margin:22px 0 7px;color:#274b63}
+.angle-table{max-width:620px}
+.degree-source-wrap{max-height:240px;max-width:640px;border:1px solid #e3edf2;border-radius:10px}
+.degree-source-wrap th{position:sticky;top:0}
+.angle-origin{color:#23577b;font-weight:670}
+@media(max-width:770px){.subheading{margin-top:18px}.degree-source-wrap{max-height:190px}}
+.table-top{padding:16px 20px 20px}
+.filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--border)}
+.filters select{min-height:37px;max-width:240px;min-width:150px;padding:7px 10px;font-size:13px}
+.filters input{min-height:37px;max-width:270px;font-size:13px;padding:7px 10px}
+.tag{display:inline-block;padding:4px 8px;border-radius:6px;background:#f2f6f8;color:#526778;font-size:12px;font-weight:700}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+footer{font-size:12px;color:#778795;margin:24px 2px 0}
+@media(max-width:770px){main{padding:16px 11px 32px}.panel-inner{padding:13px}.scenarios{grid-template-columns:repeat(2,1fr);gap:5px}.scenario{font-size:12px}.section-header{padding:15px 14px 0}.filters{padding:12px 14px}.table-top{padding:12px 14px 15px}.action{width:100%}.field.small{flex:1 1 90px}.subtitle{font-size:14px}th,td{padding:9px 11px}}
+
+/* Три независимые глобальные задачи */
+/* Закреплённое быстрое переключение между калькуляторами.
+   На мобильных устройствах панель также остаётся видимой при прокрутке. */
+.global-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 21px;position:-webkit-sticky;position:sticky;top:0;z-index:100;padding:8px;border:1px solid #e0eaf0;border-radius:18px;background:rgba(249,251,253,.96);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 6px 20px #17395812}
+.global-tab{display:flex;align-items:center;gap:14px;text-align:left;border:1px solid #d3e2e9;border-radius:15px;padding:15px 18px;background:#fff;color:#31556a;cursor:pointer;box-shadow:0 3px 13px #193a5909;font:inherit;transition:border-color .15s,box-shadow .15s}
+.global-tab:hover{border-color:#83b8c6;box-shadow:0 5px 15px #123e5b16}
+.global-tab[aria-selected="true"]{border-color:#168397;background:#e9f6f7;box-shadow:inset 0 0 0 1px #168397}
+.global-tab-icon{display:grid;place-items:center;width:43px;height:43px;background:#e8f1f5;border-radius:12px;color:#1b6078;font-size:22px;flex-shrink:0}
+.global-tab[aria-selected="true"] .global-tab-icon{background:#ccebed;color:#075c6b}
+.global-tab-title{display:block;font-size:15px;font-weight:750;color:#173e53}
+.global-tab-caption{display:block;color:#677d8c;font-size:12px;margin-top:2px}
+.gann-heading{padding:20px 22px 8px}
+.gann-heading h2{font-size:22px}
+.gann-form{padding:12px 22px 22px;display:flex;flex-wrap:wrap;gap:13px;align-items:end}
+.gann-form .field{min-width:170px;flex:1 1 220px}
+.gann-form input{font-size:19px;font-weight:740;font-variant-numeric:tabular-nums}
+.gann-form .action{flex:0 0 auto}
+.gann-help{font-size:12px;color:var(--muted);padding:0 22px 19px;margin:-7px 0 0}
+.gann-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.gann-grid .panel{min-width:0}
+.gann-result-top{display:flex;justify-content:space-between;gap:16px;align-items:start;padding:19px 20px 0}
+.gann-number-pill{padding:5px 11px;border-radius:999px;background:#eaf4f7;color:#17637b;font-size:12px;font-weight:750}
+.gann-visuals{padding:17px 20px}
+.gann-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-width:0}
+.gann-kpi{background:#f4f8fa;border:1px solid #e7eef1;border-radius:10px;padding:10px 12px}
+
+.gann-kpi span{display:block;font-size:11px;color:#687f90}
+.gann-kpi strong{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.gann-zero-title{font-size:13px;font-weight:760;color:#25536a;margin:18px 0 10px}
+.gann-zero-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gann-zero-card{border:1px solid #d5e5eb;border-radius:10px;background:#f5fafb;padding:11px 12px;min-width:0}
+.gann-zero-card span{display:block;color:#597686;font-size:11px;line-height:1.3;margin-bottom:5px}
+.gann-zero-card strong{display:block;color:#0e637b;font-size:19px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+@media(max-width:370px){.gann-zero-grid{grid-template-columns:1fr}}
+.gann-square-table{width:100%;border-top:1px solid #e6edf1}
+.gann-square-table th{position:static}
+.gann-square-table th,.gann-square-table td{padding:10px 12px}
+.gann-square-table td:nth-child(n+2),.gann-square-table th:nth-child(n+2){text-align:right}
+.gann-square-table th{font-size:11px}
+.gann-result-info{font-size:12px;color:var(--muted);padding:12px 18px 18px}
+.gann-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:8px 22px 22px}
+.gann-compare-stat{padding:17px;border:1px solid #e1eaf0;border-radius:12px;background:#f9fbfc}
+.gann-compare-stat span{display:block;font-size:12px;color:var(--muted)}
+.gann-compare-stat strong{display:block;font-size:24px;font-weight:760;letter-spacing:-.028em;font-variant-numeric:tabular-nums}
+.gann-compare-stat small{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.gann-compare-stat strong.positive{color:#147558}
+.gann-compare-stat strong.negative{color:#b2493d}
+.gann-delta-stat{background:#f0f7f9;border-color:#cfe2e9}
+.gann-delta-stat strong{color:#0f6279}
+.gann-delta-explanation{margin:0 22px 21px;padding:12px 15px;border-radius:10px;border:1px solid #e3edf1;background:#f9fbfc;color:#496677;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.gann-validation{margin:0 22px 18px;min-height:0;font-size:13px;color:#99432f}
+.gann-unavailable{padding:22px 18px;color:var(--muted);font-size:13px}
+.gann-form input[aria-invalid="true"]{border-color:#ca614d;box-shadow:0 0 0 3px #db857727}
+@media(max-width:880px){.gann-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.gann-kpis{grid-template-columns:1fr}.gann-kpi strong{font-size:16px}}
+@media(max-width:570px){.global-tabs{gap:7px}.global-tab{padding:10px;gap:8px}.global-tab-icon{width:34px;height:34px;font-size:18px}.global-tab-title{font-size:13px}.global-tab-caption{font-size:11px}.gann-square-table th,.gann-square-table td{padding:8px 7px;font-size:11px}.gann-compare-grid{grid-template-columns:1fr}.gann-form{padding:12px 15px 18px}.gann-heading{padding:17px 15px 5px}.gann-help{padding:0 15px 17px}}
+
+/* Стрелки сдвига календарной даты в сценариях 1 и 3 */
+.date-input-row{display:flex;gap:7px;align-items:stretch;min-width:0}
+.date-input-row input{flex:1 1 auto;min-width:0}
+.date-stepper{display:flex;flex-direction:column;gap:2px;flex:0 0 33px}
+.date-stepper button{display:grid;place-items:center;width:33px;height:22px;padding:0;border:1px solid #cbd9e3;border-radius:6px;background:#f1f7fa;color:#17677e;font:700 12px/1 system-ui,sans-serif;cursor:pointer}
+.date-stepper button:hover{background:#dbeff5;border-color:#78b2c4}
+.date-stepper button:focus-visible{outline:2px solid #17677e;outline-offset:2px}
+
+/* Версия 20: четыре сценария закреплены сразу под глобальными вкладками.
+   Навигация вынесена из .panel с overflow:hidden, чтобы sticky работал
+   относительно окна браузера, а не ограничивался верхней карточкой. */
+:root{--global-tabs-sticky-height:96px}
+#dates-workspace > .scenarios{
+  position:-webkit-sticky;
+  position:sticky;
+  top:calc(var(--global-tabs-sticky-height) + 7px);
+  z-index:99;
+  margin-bottom:17px;
+  background:rgba(237,243,247,.97);
+  border:1px solid #dce7ed;
+  box-shadow:0 5px 17px #17395816;
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+}
+#dates-workspace > .scenarios .scenario:focus-visible{outline:2px solid #17677e;outline-offset:-2px}
+@media(max-width:770px){
+  #dates-workspace > .scenarios{margin-bottom:14px}
+}
+
+/* Колесо чисел — третья глобальная вкладка. */
+@media(max-width:680px){
+  .global-tabs{gap:5px;padding:6px;border-radius:13px}
+  .global-tab{gap:7px;min-width:0;padding:10px 8px;justify-content:center}
+  .global-tab-icon{width:30px;height:30px;font-size:17px}
+  .global-tab-title{font-size:12px;overflow-wrap:break-word;line-height:1.2}
+}
+@media(max-width:435px){.global-tab-icon{display:none}.global-tab{min-height:56px;text-align:center}}
+.wheel-form{display:flex;flex-wrap:wrap;align-items:end;gap:13px;padding:8px 20px 21px}
+.wheel-field{display:flex;flex-direction:column;gap:6px;flex:1 1 165px;min-width:148px}
+.wheel-field label{font-size:12px;color:#4d6676;font-weight:750}
+.wheel-field input{min-height:43px;max-width:100%}
+.wheel-field-input{display:flex;gap:7px;align-items:stretch}
+.wheel-field-input>input{min-width:0;flex:1}
+.wheel-input-steppers{display:flex;flex-direction:column;gap:3px;width:37px;flex:none}
+.wheel-input-steppers button{border:1px solid #bed2dc;background:#e9f5f9;color:#0d6077;border-radius:7px;font-size:12px;font-weight:800;min-height:20px;cursor:pointer;flex:1}
+.wheel-input-steppers button:hover{background:#d2ebf2}
+.wheel-input-steppers button:focus-visible{outline:2px solid #17677e;outline-offset:1px}
+.wheel-search-actions{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+.wheel-search-actions .action{min-width:108px}
+.wheel-reset{border:1px solid #cbd9e3;background:#f6fafb;color:#26536a;padding:10px 17px;min-height:43px;border-radius:9px;font:inherit;font-weight:730;cursor:pointer}
+.wheel-reset:hover{background:#e9f4f8}
+.wheel-palette{display:flex;flex-wrap:wrap;gap:9px;align-items:center;padding:0 20px 18px;border-bottom:1px solid #e5edf1}
+.wheel-palette-label{font-size:12px;font-weight:750;color:#4d6676;margin-right:3px}
+.wheel-swatches{display:flex;gap:6px;align-items:center}
+.wheel-swatch{width:27px;height:27px;border:2px solid white;outline:1px solid #cad8e1;border-radius:8px;cursor:pointer;transition:transform .1s}
+.wheel-swatch:hover{transform:translateY(-1px)}
+.wheel-swatch[aria-pressed="true"]{outline:2px solid #17677e;outline-offset:2px}
+.wheel-custom-color{display:flex;align-items:center;gap:8px;color:#526b7b;font-size:12px}
+.wheel-custom-color input{width:40px;height:32px;min-height:32px;padding:2px;border-radius:7px;cursor:pointer}
+.wheel-status{font-size:13px;color:#366476;margin:0;padding:13px 20px;min-height:45px}
+.wheel-status.error{color:#b2493d}
+.wheel-table-wrap{overflow-x:auto;overflow-y:visible;border-top:1px solid #e5edf1;-webkit-overflow-scrolling:touch}
+.wheel-table{min-width:1330px;width:100%;border-collapse:separate;border-spacing:0;white-space:nowrap;table-layout:fixed}
+.wheel-table th,.wheel-table td{padding:8px 12px;text-align:right;border-bottom:1px solid #e9eef1;border-right:1px solid #edf1f4;font-variant-numeric:tabular-nums;font-size:12px}
+.wheel-table th{font-size:12px;background:#eaf3f7;color:#365369;text-align:right;position:static}
+.wheel-table td{background:#fff;transition:background-color .1s}
+.wheel-table tr:nth-child(even) td{background:#f8fafb}
+.wheel-table tbody tr:hover td{background:#eff7fa}
+.wheel-table th:first-child,.wheel-table td:first-child{text-align:center;width:105px;position:sticky;left:0;z-index:2;background:#edf5f8;border-right:2px solid #cbdfe7;font-weight:730;color:#3e6679}
+.wheel-table th:first-child{z-index:3;background:#dcebf2}
+.wheel-table td.wheel-match,
+.wheel-table tbody tr:nth-child(even) td.wheel-match,
+.wheel-table tbody tr:hover td.wheel-match{background:var(--wheel-match-color,#d8f5df)!important;color:#203b3e!important;font-weight:770}
+.wheel-note{padding:12px 20px 19px;font-size:12px;color:#62758a;line-height:1.65}
+@media(max-width:770px){
+  .wheel-form{padding:7px 13px 14px;gap:11px}
+  .wheel-palette{padding:3px 13px 15px}
+  .wheel-status{padding:11px 13px}
+  .wheel-note{padding:10px 13px 14px}
+  .wheel-search-actions .action{width:auto}
+}
+
+/* Четыре дополнительные пары стрелок для числовых полей. */
+.gann-form .wheel-field-input{width:100%}
+.gann-form .wheel-field-input>input{min-width:0;width:auto}
+.gann-form .wheel-input-steppers{width:37px}
+.gann-form input[type=number]::-webkit-inner-spin-button,
+.gann-form input[type=number]::-webkit-outer-spin-button,
+#wheel-tolerance::-webkit-inner-spin-button,
+#wheel-tolerance::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.gann-form input[type=number],#wheel-tolerance{-moz-appearance:textfield;appearance:textfield}
+.wheel-field .wheel-field-input{width:100%}
+
+/* Gematria — четвёртая глобальная вкладка. */
+.global-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:680px){
+  .global-tabs{display:flex;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+  .global-tab{flex:0 0 auto;min-width:112px;max-width:155px;justify-content:center}
+  .global-tab-title{font-size:12px}
+}
+@media(max-width:435px){
+  .global-tabs{gap:6px}
+  .global-tab{min-height:48px;padding:9px 11px;max-width:145px;min-width:115px}
+}
+.gem-intro{padding:17px 21px 7px}
+.gem-intro h2{font-size:22px}
+.gem-form{padding:10px 21px 21px}
+.gem-text-field{display:flex;flex-direction:column;gap:7px}
+.gem-text-field label{font-size:12px;font-weight:750;color:#4d6676}
+.gem-text-field textarea{display:block;font:inherit;color:var(--ink);background:#fff;border:1px solid #cbd9e3;border-radius:10px;padding:12px 14px;width:100%;min-height:88px;max-height:250px;resize:vertical;outline:none;line-height:1.55}
+.gem-text-field textarea:focus{border-color:#19849b;box-shadow:0 0 0 3px #218fa122}
+.gem-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;padding:0 21px 20px}
+.gem-summary-card{border:1px solid #dce7ed;border-radius:13px;background:#f7fafc;padding:15px 16px;min-width:0}
+.gem-summary-card:nth-child(2){background:#f7f9fe;border-color:#dfe4f0}
+.gem-summary-card:nth-child(3){background:#f5faf6;border-color:#d8e8dd}
+.gem-summary-card label{display:block;font-size:12px;font-weight:760;color:#486779;margin-bottom:7px}
+.gem-summary-card output{display:flex;align-items:baseline;flex-wrap:wrap;gap:7px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.gem-sum{font-size:24px;font-weight:790;color:#133f58;letter-spacing:-.03em}
+.gem-arrow{color:#8293a1;font-size:17px}
+.gem-reduced{font-size:24px;color:#13725f;font-weight:800;letter-spacing:-.03em}
+.gem-summary-card small{display:block;margin-top:4px;min-height:18px;color:#677d8c;font-size:11px}
+.gem-table-shell{overflow-x:auto;-webkit-overflow-scrolling:touch;border-top:1px solid #e2eaf0}
+.gem-table{width:100%;min-width:680px;table-layout:fixed;border-collapse:separate;border-spacing:0}
+.gem-table th,.gem-table td{padding:7px 12px;border-bottom:1px solid #e8edf1;border-right:1px solid #e9eef2;font-size:12px;text-align:center}
+.gem-table thead th{position:sticky;z-index:2;background:#eaf3f7;color:#355569;top:0}
+.gem-table thead tr:first-child th{font-weight:800;font-size:13px;background:#dcebf1}
+.gem-table thead tr:nth-child(2) th{background:#ecf4f7}
+.gem-table thead th:first-child,.gem-table tbody td:first-child{width:91px;background:#eff5f8;font-weight:750}
+.gem-table tbody tr:nth-child(even) td:not(:first-child){background:#fafcfd}
+.gem-table tbody tr:hover td:not(:first-child){background:#f1f8f9}
+.gem-table td.gem-letter{font-weight:760;color:#155b78;font-size:14px}
+.gem-table td.gem-value{color:#285264;font-variant-numeric:tabular-nums}
+.gem-table td.gem-missing{color:#9ba9b4;background:#fafbfc}
+.gem-table td.gem-highlight,.gem-table tbody tr:nth-child(even) td.gem-highlight,.gem-table tbody tr:hover td.gem-highlight{background:#d7f3e6!important;color:#0e6347;font-weight:850}
+.gem-table th:first-child{position:sticky;left:0;z-index:4}
+.gem-table td:first-child{position:sticky;left:0;z-index:3}
+.gem-note{font-size:12px;color:#647888;line-height:1.6;padding:14px 21px 19px}
+@media(max-width:770px){
+ .gem-intro{padding:16px 14px 7px}
+ .gem-form{padding:8px 14px 16px}
+ .gem-summary{padding:0 14px 14px;gap:9px}
+ .gem-summary-card{padding:10px 11px}
+ .gem-sum,.gem-reduced{font-size:19px}
+ .gem-note{padding:13px 14px 17px}
+}
+@media(max-width:540px){
+ .gem-summary{grid-template-columns:1fr}
+ .gem-summary-card{padding:11px 14px}
+ .gem-summary-card small{min-height:0}
+}
+
+
+/* Версия 25: компактный масштаб всех пяти глобальных страниц. */
+body{font-size:12.5px;line-height:1.36}
+main{max-width:1500px;padding:12px 13px 29px}
+header{margin:0 0 10px}
+h1{font-size:clamp(20px,2.6vw,28px);margin:3px 0 5px}
+.panel{border-radius:11px;margin-bottom:11px;box-shadow:0 2px 10px #17395809}
+.panel-inner{padding:12px}
+.global-tabs{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:5px;border-radius:11px;margin-bottom:12px}
+.global-tab{gap:8px;padding:8px 10px;border-radius:9px;min-height:44px}
+.global-tab-icon{width:29px;height:29px;font-size:16px;border-radius:7px}
+.global-tab-title{font-size:12px;line-height:1.19}
+.scenarios{gap:5px;padding:4px;border-radius:8px;margin-bottom:10px}
+.scenario{min-height:33px;font-size:11.5px;padding:5px 6px;border-radius:6px}
+#dates-workspace > .scenarios{margin-bottom:10px;top:calc(var(--global-tabs-sticky-height) + 3px)}
+.controls{gap:8px}
+.field{gap:3px;min-width:130px;flex:1 1 165px}
+.field label,.wheel-field label,.gem-text-field label{font-size:10.5px}
+.field.small{min-width:72px;flex:0 1 82px}
+input,select{min-height:33px;padding:6px 8px;font-size:12px;border-radius:6px}
+.action,.wheel-reset{min-height:34px;padding:7px 12px;border-radius:7px;font-size:12px}
+.note{font-size:10.5px;margin-top:8px}
+.section-header{padding:10px 12px 0;gap:7px}
+h2{font-size:16px}
+.info{font-size:11px}
+.count{font-size:10px;padding:3px 8px}
+.table-top{padding:9px 11px}
+th,td{padding:5px 8px;font-size:11px}
+th{font-size:10.5px}
+.filters{padding:8px 11px;gap:6px}
+.filters input,.filters select{font-size:11px;min-height:30px;padding:5px 7px}
+.subheading{font-size:13px;margin:13px 0 6px}
+.date-stepper{flex-basis:27px}
+.date-stepper button{width:27px;height:16px;font-size:10px}
+.gann-heading{padding:12px 14px 5px}
+.gann-heading h2,.gem-intro h2{font-size:18px}
+.gann-form{padding:8px 14px 12px;gap:9px}
+.gann-form .field{min-width:125px;flex:1 1 180px}
+.gann-form input{font-size:14px}
+.gann-help{font-size:10.5px;padding:0 14px 12px;margin:-3px 0 0}
+.gann-grid{gap:10px}
+.gann-result-top{padding:12px 13px 0;gap:8px}
+.gann-visuals{padding:11px 13px}
+.gann-kpis{gap:7px}
+.gann-kpi{padding:7px}
+.gann-kpi span,.gann-zero-card span{font-size:10px}
+.gann-kpi strong,.gann-zero-card strong{font-size:15px}
+.gann-zero-card{padding:7px}
+.gann-zero-grid{gap:7px}
+.gann-zero-title{margin:11px 0 7px}
+.gann-square-table th,.gann-square-table td{padding:6px 8px;font-size:10px}
+.gann-result-info{padding:8px 12px;font-size:10.5px}
+.gann-compare-grid{gap:9px;padding:6px 13px 12px}
+.gann-compare-stat{padding:10px}
+.gann-compare-stat strong{font-size:19px}
+.gann-delta-explanation{margin:0 13px 12px;padding:8px 10px}
+.gann-validation{margin:0 13px 10px}
+.wheel-form{padding:7px 12px 12px;gap:9px}
+.wheel-field{min-width:125px;flex-basis:145px;gap:3px}
+.wheel-field input{min-height:33px}
+.wheel-input-steppers{width:29px;gap:2px}
+.wheel-input-steppers button{min-height:15px;font-size:10px;border-radius:4px}
+.wheel-palette{padding:0 12px 10px;gap:7px}
+.wheel-swatch{width:22px;height:22px;border-radius:5px}
+.wheel-status{padding:7px 12px;min-height:28px;font-size:11px}
+.wheel-table{min-width:1030px}
+.wheel-table th,.wheel-table td{padding:4px 6px;font-size:10.5px}
+.wheel-table th:first-child,.wheel-table td:first-child{width:82px}
+.wheel-note{padding:8px 12px 11px;font-size:10.5px}
+.gem-intro{padding:11px 13px 5px}
+.gem-form{padding:7px 13px 11px}
+.gem-text-field textarea{min-height:60px;padding:8px 10px;font-size:12px}
+.gem-summary{gap:7px;padding:0 13px 11px}
+.gem-summary-card{padding:9px 10px;border-radius:8px}
+.gem-sum,.gem-reduced{font-size:19px}
+.gem-table th,.gem-table td{padding:4px 7px;font-size:10.5px}
+.gem-table td.gem-letter{font-size:12px}
+.gem-note{font-size:10.5px;padding:8px 13px 12px}
+footer{font-size:10.5px;margin-top:12px}
+@media(max-width:770px){
+ main{padding:8px 7px 20px}
+ .global-tabs{display:flex;overflow-x:auto;overflow-y:hidden;gap:4px;padding:4px;scrollbar-width:thin}
+ .global-tab{flex:0 0 auto;min-width:99px;max-width:150px;min-height:39px;padding:6px 8px}
+ .global-tab-title{font-size:11px}
+ .global-tab-icon{display:none}
+ .scenarios{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .scenario{min-height:32px;font-size:10.5px}
+ .panel-inner{padding:9px}
+ .action{width:auto}
+ .gann-form{padding:8px 10px 10px}
+ .gann-heading{padding:9px 10px 4px}
+ .gann-help{padding:0 10px 10px}
+ .gem-summary{grid-template-columns:repeat(3,minmax(0,1fr));padding:0 10px 11px}
+ .gem-summary-card{padding:8px}
+ .gem-sum,.gem-reduced{font-size:15px}
+ .gem-summary-card label{font-size:10px}
+ .gem-summary-card small{font-size:9.5px}
+ .wheel-form{padding:8px 10px 11px}
+ .wheel-palette{padding:0 10px 9px}
+ .wheel-status{padding:7px 10px}
+}
+@media(max-width:435px){
+ .global-tab{min-width:100px;max-width:132px;min-height:36px}
+ .gann-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .gann-kpi span{font-size:9px}
+ .gann-kpi strong{font-size:13px}
+ .gem-summary{grid-template-columns:1fr}
+}
+
+/* Пятая глобальная вкладка — таблицы интервалов времени и чисел. */
+#dt-workspace{--dt-hit-color:#d8f5df}
+.dt-subtabs{display:flex;gap:5px;padding:4px;background:rgba(237,243,247,.97);border:1px solid #dce7ed;border-radius:9px;margin-bottom:10px;position:sticky;top:calc(var(--global-tabs-sticky-height) + 3px);z-index:99;box-shadow:0 5px 15px #17395811;backdrop-filter:blur(10px)}
+.dt-subtab{flex:1;border:0;background:transparent;border-radius:6px;min-height:32px;color:#486476;font-size:12px;font-weight:700;cursor:pointer}
+.dt-subtab[aria-selected="true"]{background:#fff;color:#095d75;box-shadow:0 2px 7px #17395816}
+.dt-panel-head{padding:12px 13px 6px}
+.dt-panel-head h2{font-size:16px}
+.dt-help{font-size:11px;color:#677d8c;margin:5px 0 0;line-height:1.45}
+.dt-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-block:1px solid #e7edf1}
+.dt-tool{border:1px solid #cbdde5;background:#f7fafc;color:#25536b;padding:6px 9px;min-height:30px;border-radius:6px;font:650 11px system-ui,sans-serif;cursor:pointer}
+.dt-tool:hover{background:#e7f3f7}
+.dt-tool:disabled{opacity:.4;cursor:not-allowed}
+.dt-tool-primary{background:#e5f4f7;color:#065d76;border-color:#aad5e2}
+.dt-selected-note{margin-left:auto;font-size:10.5px;color:#527082}
+.dt-table-wrap{overflow:auto;max-height:68vh;scrollbar-color:#b9cbd5 transparent;border-bottom:1px solid #e9eff2}
+.dt-table{font-size:10.5px;min-width:1070px;width:100%;table-layout:auto}
+.dt-table--time{min-width:1640px}
+.dt-table th{position:sticky;top:0;z-index:3;text-align:right;font-size:10px;padding:7px 8px;border-right:1px solid #dfeaf0}
+.dt-table th:first-child,.dt-table th:nth-child(2){text-align:left}
+.dt-table td{padding:5px 7px;border-right:1px solid #edf2f4;text-align:right;font-size:11px;background:#fff}
+.dt-table tr:nth-child(even) td{background:#fafcfd}
+.dt-table tbody tr.dt-selected td{background:#f0f7fb}
+.dt-table tbody tr.dt-selected:hover td{background:#e9f4f8}
+.dt-table td.dt-date-cell{min-width:167px;text-align:left}
+.dt-table .dt-row-cell{display:flex;align-items:center;gap:5px}
+.dt-table .dt-row-index{font-size:9px;color:#598095;min-width:18px;white-space:nowrap}
+.dt-table .dt-row-radio{width:13px;height:13px;min-height:13px;flex:0 0 13px;padding:0;accent-color:#17677e}
+.dt-table .dt-date-input{width:100%;min-width:116px;min-height:29px;padding:4px 5px;border-radius:5px;font-size:10.5px;font-variant-numeric:tabular-nums}
+.dt-table td.dt-computed{font-variant-numeric:tabular-nums;white-space:nowrap;color:#31546b}
+.dt-table td.dt-computed.dt-hit,.dt-table tr:nth-child(even) td.dt-computed.dt-hit,.dt-table tbody tr.dt-selected td.dt-computed.dt-hit,.dt-table tbody tr.dt-selected:hover td.dt-computed.dt-hit{background:var(--dt-hit-color)!important;color:#174b3c!important;font-weight:750}
+.dt-search{display:flex;flex-wrap:wrap;align-items:end;gap:8px;padding:10px 12px 7px}
+.dt-search .dt-search-field{display:flex;flex-direction:column;gap:3px;min-width:120px;max-width:185px;flex:1 1 150px}
+.dt-search .dt-search-field label{font-size:10.5px;font-weight:730;color:#4d6676}
+.dt-search .dt-search-field input{min-height:33px;padding:6px 8px}
+.dt-search .dt-search-buttons{display:flex;gap:6px;align-items:end}
+.dt-palette{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:2px 12px 8px}
+.dt-palette span{font-size:10.5px;color:#557184;font-weight:700;margin-right:3px}
+.dt-color{width:23px;height:23px;min-height:23px;padding:0;border-radius:6px;border:2px solid white;outline:1px solid #bacbd5;cursor:pointer}
+.dt-color[aria-pressed="true"]{outline:2px solid #17677e;outline-offset:1px}
+.dt-palette input[type=color]{width:34px;height:28px;min-height:28px;padding:2px;cursor:pointer}
+.dt-status{color:#537587;font-size:11px;padding:0 12px 11px;min-height:21px}
+.dt-status.error{color:#ab4538}
+@media(max-width:770px){
+ .dt-panel-head{padding:10px 10px 5px}
+ .dt-toolbar{padding:7px 8px;gap:5px}
+ .dt-tool{padding:6px 7px;font-size:10.5px}
+ .dt-selected-note{width:100%;margin-left:0}
+ .dt-search{padding:8px}
+ .dt-palette{padding:2px 8px 9px}
+ .dt-table{min-width:1000px}
+ .dt-table--time{min-width:1540px}
+}
+
+
+.app-header{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.app-data-tools{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.app-data-tools .dt-tool{font-size:10px;min-height:27px;padding:5px 7px;white-space:nowrap}
+.app-save-status{font-size:10px;color:#467067;white-space:nowrap}
+.date-input-row input[type="text"]{min-width:137px;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+#transfer-dt{white-space:nowrap;align-self:end}
+@media(max-width:570px){.app-header{gap:5px}.app-header h1{font-size:17px}.app-data-tools{gap:4px}.app-data-tools .dt-tool{font-size:9px;padding:5px 6px}.app-save-status{width:100%}}
+
+/* «Число времени»: узкие поля ввода и выбор из обычных и градусных единиц. */
+.dt-table--number{min-width:1540px}
+.dt-table--number th:first-child,.dt-table--number td.dt-number-input-cell{width:125px;min-width:125px;max-width:125px}
+.dt-table--number th:nth-child(2),.dt-table--number td.dt-unit-cell{width:120px;min-width:120px;max-width:120px}
+.dt-table--number td.dt-number-input-cell{padding-left:4px;padding-right:4px;text-align:left}
+.dt-table--number td.dt-unit-cell{padding-left:4px;padding-right:4px;text-align:left}
+.dt-table--number .dt-row-cell{gap:3px}
+.dt-table--number .dt-row-index{min-width:12px}
+.dt-table--number .dt-date-input{width:71px;min-width:0;max-width:71px;flex:0 0 71px;min-height:29px;font-size:10.5px;padding:4px 3px}
+.dt-table--number .dt-unit-select{min-width:0;width:108px;max-width:108px;min-height:29px;padding:4px 3px;font-size:10px;border-radius:5px}
+/* Более компактные расчётные колонки без уменьшения точности чисел. */
+.dt-table--number th:nth-child(n+3){padding:5px 4px;line-height:1.2;white-space:normal;font-size:9.5px}
+.dt-table--number td.dt-computed{padding:4px 5px;font-size:10px}
+@media(max-width:770px){.dt-table--number{min-width:1500px}.dt-subtab{font-size:11px}}
+
+/* Версия 27: отдельный sticky-контейнер для пяти глобальных вкладок.
+   На iOS Safari элемент с overflow-x:auto/overflow-y:hidden может
+   переставать нормально фиксироваться при вертикальной прокрутке.
+   Закрепляем внешнюю обёртку, горизонтальную прокрутку оставляем дочерней nav. */
+.global-tabs-sticky{
+  position:-webkit-sticky;
+  position:sticky;
+  top:0;
+  z-index:120;
+  margin-bottom:12px;
+  isolation:isolate;
+}
+.global-tabs-sticky > .global-tabs{
+  position:static;
+  top:auto;
+  margin-bottom:0;
+  z-index:auto;
+}
+</style>
+</head>
+<body>
+<main>
+<header class="app-header">
+  <h1>Калькулятор времени и чисел</h1>
+  <div class="app-data-tools">
+    <button type="button" id="export-excel" class="dt-tool dt-tool-primary" title="Экспорт всех расчётов в Excel">Экспорт в Excel (.xlsx)</button>
+    <button type="button" id="backup-json" class="dt-tool" title="Резервная копия при переходе на новую версию приложения">Экспорт данных</button>
+    <button type="button" id="restore-json" class="dt-tool">Импорт данных</button>
+    <input id="restore-json-file" type="file" accept=".json,application/json" hidden>
+    <span class="app-save-status" id="app-save-status" aria-live="polite">Автосохранение в браузере</span>
+  </div>
+</header>
+
+<div class="global-tabs-sticky">
+<nav class="global-tabs" role="tablist" aria-label="Глобальные задачи">
+  <button type="button" id="global-date-tab" class="global-tab" role="tab" aria-selected="true" aria-controls="dates-workspace" tabindex="0">
+    <span class="global-tab-icon" aria-hidden="true">◷</span><span><span class="global-tab-title">Калькулятор времени</span></span>
+  </button>
+  <button type="button" id="global-gann-tab" class="global-tab" role="tab" aria-selected="false" aria-controls="gann-workspace" tabindex="-1">
+    <span class="global-tab-icon" aria-hidden="true">▦</span><span><span class="global-tab-title">Калькулятор чисел</span></span>
+  </button>
+  <button type="button" id="global-wheel-tab" class="global-tab" role="tab" aria-selected="false" aria-controls="wheel-workspace" tabindex="-1">
+    <span class="global-tab-icon" aria-hidden="true">◎</span><span><span class="global-tab-title">Колесо чисел</span></span>
+  </button>
+  <button type="button" id="global-gem-tab" class="global-tab" role="tab" aria-selected="false" aria-controls="gem-workspace" tabindex="-1">
+    <span class="global-tab-icon" aria-hidden="true">Σ</span><span><span class="global-tab-title">Gematria</span></span>
+  </button>
+  <button type="button" id="global-dt-tab" class="global-tab" role="tab" aria-selected="false" aria-controls="dt-workspace" tabindex="-1">
+    <span class="global-tab-icon" aria-hidden="true">≋</span><span><span class="global-tab-title">Калькулятор времени и чисел</span></span>
+  </button>
+</nav>
+</div>
+<div id="dates-workspace" role="tabpanel" aria-labelledby="global-date-tab">
+  <nav class="scenarios" id="scenarios" role="group" aria-label="Выбор сценария">
+    <button class="scenario" type="button" data-mode="1" aria-pressed="true">Дата</button>
+    <button class="scenario" type="button" data-mode="2" aria-pressed="false">2 · Дата и время</button>
+    <button class="scenario" type="button" data-mode="3" aria-pressed="false">Диапазон дат</button>
+    <button class="scenario" type="button" data-mode="4" aria-pressed="false">Диапазон дат и времени</button>
+  </nav>
+<section class="panel"><div class="panel-inner">
+  <form id="calculator" class="controls">
+    <div class="field" id="first-field" hidden>
+      <label id="first-label" for="first">Первая дата</label>
+      <div class="date-input-row">
+        <input id="first" type="text" value="15.07.2026" inputmode="text" autocomplete="off" spellcheck="false" placeholder="ДД.ММ.ГГГГ" required>
+        <div class="date-stepper" id="first-stepper" hidden>
+          <button type="button" data-date-input="first" data-date-shift="1" aria-label="Увеличить первую дату на один день" title="Следующий день">▲</button>
+          <button type="button" data-date-input="first" data-date-shift="-1" aria-label="Уменьшить первую дату на один день" title="Предыдущий день">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label id="last-label" for="last">Заданная дата</label>
+      <div class="date-input-row">
+        <input id="last" type="text" value="16.10.2026" inputmode="text" autocomplete="off" spellcheck="false" placeholder="ДД.ММ.ГГГГ" required>
+        <div class="date-stepper" id="last-stepper">
+          <button type="button" data-date-input="last" data-date-shift="1" aria-label="Увеличить дату на один день" title="Следующий день">▲</button>
+          <button type="button" data-date-input="last" data-date-shift="-1" aria-label="Уменьшить дату на один день" title="Предыдущий день">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="field small"><label for="minpower">Степень от</label><input id="minpower" type="number" min="-12" max="10" step="1" value="-6"></div>
+    <div class="field small"><label for="maxpower">До</label><input id="maxpower" type="number" min="-12" max="10" step="1" value="4"></div>
+    <button class="action" type="submit">Рассчитать</button>
+    <button type="button" class="dt-tool dt-tool-primary" id="transfer-dt" hidden>+ Добавить в таблицу</button>
+  </form>
+<div id="transfer-notice" class="app-save-status" hidden role="status"></div>
+  <div class="note" id="explanation">Дни считаются с 1 января включительно. Прибавки менее суток исключаются.</div>
+  <div class="alert" id="error" role="alert"></div>
+</div></section>
+<section class="panel" aria-labelledby="source-title">
+  <div class="section-header"><div><h2 id="source-title">1. Исходные числа</h2><p class="info" id="interval-label"></p></div><span class="count" id="source-count"></span></div>
+  <div class="table-top"><table class="mini-table"><thead><tr><th>Единица времени</th><th class="numeric">Исходное число</th></tr></thead><tbody id="source-body"></tbody></table></div>
+</section>
+<section class="panel" id="degrees-panel" aria-labelledby="degrees-title" hidden>
+  <div class="section-header"><div><h2 id="degrees-title">1.1. Градусы исходного периода</h2><p class="info" id="degree-description">Дробная часть исходных недель, месяцев и лет × 360°. Для расчётов используется полное значение.</p></div><span class="count" id="degree-count">3 значения</span></div>
+  <div class="table-top">
+    <table class="mini-table"><thead><tr><th>Градус времени</th><th class="numeric">Исходное число</th></tr></thead><tbody id="source-degree-body"></tbody></table>
+    <h3 class="subheading">Углы из исходных чисел (10–360°)</h3>
+    <p class="info" id="angle-description" style="margin:0 0 10px">Каждое исходное число масштабируется степенями 10 до угла 10–360°. Угол делится на 360; полученное базовое число без дальнейшего масштабирования прибавляется только как недели, месяцы и годы.</p>
+    <div class="table-wrap degree-source-wrap"><table class="mini-table angle-table"><thead><tr><th>Исходная единица</th><th class="numeric">Угол</th><th class="numeric">Угол / 360</th></tr></thead><tbody id="angle-body"></tbody></table></div>
+    <p class="info" id="angle-summary" style="margin-top:9px"></p>
+  </div>
+</section>
+<section class="panel" aria-labelledby="results-title">
+  <div class="section-header"><div><h2 id="results-title">2. Полная выборка</h2><p class="info" id="results-note">Вся выборка сначала рассчитана, затем отсортирована по точной прибавке.</p></div><span class="count" id="result-count"></span></div>
+  <div class="filters"><select id="filter-source" aria-label="Фильтр исходной единицы"></select><select id="filter-target" aria-label="Фильтр новой единицы"></select><input type="search" id="filter-search" placeholder="Поиск даты или значения…" aria-label="Поиск по таблице"></div>
+  <div class="table-wrap"><table id="result-table"><thead id="result-head"></thead><tbody id="result-body"></tbody></table></div>
+  <div class="note" style="padding:5px 20px 17px;margin:0">Жёлтые колонки — преобразованное число и новая единица. В сценариях «Дата» и «Диапазон дат» дополнительно учитываются градусы исходных недель, месяцев и лет. В сценариях «Дата и время» и «Диапазон дат и времени» дополнительно учитываются градусы исходных часов, 12 часов, дней, недель и месяцев. Базовые числа углов 10–360° используются без повторного масштабирования в установленных единицах. Совпадение итоговых дат само по себе не удаляет строки. Градусы отображаются до 2 знаков, остальные числа — до 4; вычисления ведутся без округления.</div>
+</section>
+<footer>Все вычисления выполняются на этом устройстве. Данные никуда не отправляются. Месяц = 364 / 12 суток, год = 364 суток, неделя = 7 суток. Поддерживаются даты до 31.12.9999.</footer>
+</div>
+
+<div id="gann-workspace" role="tabpanel" aria-labelledby="global-gann-tab" hidden>
+  <section class="panel" aria-labelledby="gann-title">
+    <div class="gann-heading">
+      <div class="eyebrow" style="font-size:11px;letter-spacing:.08em;color:#168198;font-weight:750;text-transform:uppercase">Глобальная задача 02</div>
+      <h2 id="gann-title">Положение числа в квадрате 9 Ганна</h2>
+      <p class="info" style="margin-top:6px">Для каждого числа определяются ближайшие нечётные квадраты снизу и сверху, ближайший чётный квадрат и угловые расстояния до них.</p>
+    </div>
+    <form id="gann-form" class="gann-form" novalidate>
+      <div class="field">
+        <label for="gann-first">Первое число</label>
+        <div class="wheel-field-input">
+          <input id="gann-first" name="gann-first" type="number" min="1.01" max="1000000000000" step="0.01" inputmode="decimal" value="102.00" autocomplete="off" required>
+          <div class="wheel-input-steppers">
+            <button type="button" id="gann-first-plus" aria-label="Увеличить первое число на 0,01" title="Увеличить на 0,01">▲</button>
+            <button type="button" id="gann-first-minus" aria-label="Уменьшить первое число на 0,01" title="Уменьшить на 0,01">▼</button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="gann-second">Второе число</label>
+        <div class="wheel-field-input">
+          <input id="gann-second" name="gann-second" type="number" min="1.01" max="1000000000000" step="0.01" inputmode="decimal" value="115.00" autocomplete="off" required>
+          <div class="wheel-input-steppers">
+            <button type="button" id="gann-second-plus" aria-label="Увеличить второе число на 0,01" title="Увеличить на 0,01">▲</button>
+            <button type="button" id="gann-second-minus" aria-label="Уменьшить второе число на 0,01" title="Уменьшить на 0,01">▼</button>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="action">Рассчитать</button>
+    </form>
+    <p class="gann-help">Для примера указаны 102,00 и 115,00. Вводите положительные числа больше 1 с точностью до двух знаков после запятой. Значения пересчитываются при вводе. Разницы в градусах рассчитываются по полным значениям без промежуточного округления. Угол положения отсчитывается от 0°: нечётные квадраты приняты за 315°; округление выводимых ячеек и градусов только визуальное.</p>
+    <div class="gann-validation" id="gann-validation" role="status" aria-live="polite"></div>
+  </section>
+
+  <div class="gann-grid" aria-live="polite">
+    <section class="panel" aria-labelledby="gann-first-heading">
+      <div class="gann-result-top"><div><h2 id="gann-first-heading">Первое число</h2><p class="info" id="gann-1-caption">102,00</p></div><span class="gann-number-pill">Расчёт 1</span></div>
+      <div class="gann-visuals">
+
+        <div class="gann-kpis"><div class="gann-kpi"><span>√ числа</span><strong id="gann-root-1">—</strong></div><div class="gann-kpi"><span>Ячеек на круге</span><strong id="gann-cells-1">—</strong></div><div class="gann-kpi"><span>Градусов на ячейку</span><strong id="gann-step-1">—</strong></div></div>
+        <h3 class="gann-zero-title">Положение относительно 0°</h3>
+        <div class="gann-zero-grid">
+          <div class="gann-zero-card"><span>Количество ячеек от 0</span><strong id="gann-zero-cells-from-1">—</strong></div>
+          <div class="gann-zero-card"><span>Количество ячеек до 0</span><strong id="gann-zero-cells-to-1">—</strong></div>
+          <div class="gann-zero-card"><span>Количество градусов от 0</span><strong id="gann-zero-degrees-from-1">—</strong></div>
+          <div class="gann-zero-card"><span>Количество градусов до 0</span><strong id="gann-zero-degrees-to-1">—</strong></div>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="gann-square-table"><thead><tr><th>Тип квадрата</th><th>Корень</th><th>Квадрат</th><th>Разница</th><th>Разница в градусах</th></tr></thead><tbody id="gann-rows-1"></tbody></table></div>
+      <div class="gann-result-info" id="gann-ring-info-1">—</div>
+    </section>
+    <section class="panel" aria-labelledby="gann-second-heading">
+      <div class="gann-result-top"><div><h2 id="gann-second-heading">Второе число</h2><p class="info" id="gann-2-caption">115,00</p></div><span class="gann-number-pill">Расчёт 2</span></div>
+      <div class="gann-visuals">
+
+        <div class="gann-kpis"><div class="gann-kpi"><span>√ числа</span><strong id="gann-root-2">—</strong></div><div class="gann-kpi"><span>Ячеек на круге</span><strong id="gann-cells-2">—</strong></div><div class="gann-kpi"><span>Градусов на ячейку</span><strong id="gann-step-2">—</strong></div></div>
+        <h3 class="gann-zero-title">Положение относительно 0°</h3>
+        <div class="gann-zero-grid">
+          <div class="gann-zero-card"><span>Количество ячеек от 0</span><strong id="gann-zero-cells-from-2">—</strong></div>
+          <div class="gann-zero-card"><span>Количество ячеек до 0</span><strong id="gann-zero-cells-to-2">—</strong></div>
+          <div class="gann-zero-card"><span>Количество градусов от 0</span><strong id="gann-zero-degrees-from-2">—</strong></div>
+          <div class="gann-zero-card"><span>Количество градусов до 0</span><strong id="gann-zero-degrees-to-2">—</strong></div>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="gann-square-table"><thead><tr><th>Тип квадрата</th><th>Корень</th><th>Квадрат</th><th>Разница</th><th>Разница в градусах</th></tr></thead><tbody id="gann-rows-2"></tbody></table></div>
+      <div class="gann-result-info" id="gann-ring-info-2">—</div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="gann-compare-title">
+    <div class="section-header"><div><h2 id="gann-compare-title">Сравнение двух чисел</h2><p class="info">Разница = второе − первое. Изменение, % = 100 × (второе / первое − 1).</p></div></div>
+    <div class="gann-compare-grid">
+      <div class="gann-compare-stat"><span>Разница чисел</span><strong id="gann-difference">—</strong><small>Второе число минус первое</small></div>
+      <div class="gann-compare-stat"><span>Процент изменения</span><strong id="gann-percent">—</strong><small>Относительно первого числа</small></div>
+      <div class="gann-compare-stat gann-delta-stat"><span>Дельта чисел · до вычитания 360°</span><strong id="gann-delta-full">—</strong><small>Суммарный угловой путь по всем кругам</small></div>
+      <div class="gann-compare-stat gann-delta-stat"><span>Дельта чисел · после вычитания 360°</span><strong id="gann-delta-normalized">—</strong><small>Остаток в диапазоне от 0° до 360°</small></div>
+    </div>
+    <div id="gann-delta-explanation" class="gann-delta-explanation" aria-live="polite">—</div>
+  </section>
+  <footer>Нечётные квадраты задают границы кругов. Если число точно совпадает с нечётным квадратом, для определения круга считаем его началом следующего круга. Для чисел ≤ 1 расчёт недоступен. Все округления только визуальные.</footer>
+</div>
+
+
+<div id="wheel-workspace" role="tabpanel" aria-labelledby="global-wheel-tab" hidden>
+  <section class="panel" aria-labelledby="wheel-title">
+    <div class="section-header"><div>
+      <h2 id="wheel-title">Колесо чисел</h2>
+      <p class="info">Девять кругов по 360 строк. Значения, превышающие 100, делятся на 10 до попадания в диапазон 0–100.</p>
+    </div><span class="count" id="wheel-total">3 240 значений</span></div>
+    <form id="wheel-form" class="wheel-form" novalidate>
+      <div class="wheel-field">
+        <label for="wheel-base">Заданное число</label>
+        <div class="wheel-field-input">
+          <input id="wheel-base" type="text" inputmode="decimal" autocomplete="off" value="1,00" aria-describedby="wheel-base-help" spellcheck="false">
+          <div class="wheel-input-steppers">
+            <button type="button" id="wheel-plus" aria-label="Увеличить заданное число на 0,01" title="Увеличить на 0,01">▲</button>
+            <button type="button" id="wheel-minus" aria-label="Уменьшить заданное число на 0,01" title="Уменьшить на 0,01">▼</button>
+          </div>
+        </div>
+      </div>
+      <div class="wheel-field">
+        <label for="wheel-target">Искомое число</label>
+        <div class="wheel-field-input">
+          <input id="wheel-target" type="text" inputmode="decimal" value="36,00" autocomplete="off" spellcheck="false">
+          <div class="wheel-input-steppers">
+            <button type="button" id="wheel-target-plus" aria-label="Увеличить искомое число на 0,01" title="Увеличить на 0,01">▲</button>
+            <button type="button" id="wheel-target-minus" aria-label="Уменьшить искомое число на 0,01" title="Уменьшить на 0,01">▼</button>
+          </div>
+        </div>
+      </div>
+      <div class="wheel-field" style="flex:0 1 168px">
+        <label for="wheel-tolerance">Погрешность, %</label>
+        <div class="wheel-field-input">
+          <input id="wheel-tolerance" type="number" min="0" step="1" value="1" inputmode="numeric">
+          <div class="wheel-input-steppers">
+            <button type="button" id="wheel-tolerance-plus" aria-label="Увеличить погрешность на один процентный пункт" title="Увеличить на 1%">▲</button>
+            <button type="button" id="wheel-tolerance-minus" aria-label="Уменьшить погрешность на один процентный пункт" title="Уменьшить на 1%">▼</button>
+          </div>
+        </div>
+      </div>
+      <div class="wheel-search-actions">
+        <button type="submit" id="wheel-find" class="action">Найти</button>
+        <button type="button" id="wheel-reset" class="wheel-reset">Сбросить</button>
+      </div>
+    </form>
+    <div class="wheel-palette">
+      <span class="wheel-palette-label">Цвет найденных ячеек</span>
+      <div class="wheel-swatches" role="group" aria-label="Готовые цвета подсветки">
+        <button type="button" class="wheel-swatch" data-wheel-color="#d8f5df" aria-label="Светло-зелёный" aria-pressed="true" style="background:#d8f5df"></button>
+        <button type="button" class="wheel-swatch" data-wheel-color="#ccecf8" aria-label="Светло-голубой" aria-pressed="false" style="background:#ccecf8"></button>
+        <button type="button" class="wheel-swatch" data-wheel-color="#ffedb7" aria-label="Светло-жёлтый" aria-pressed="false" style="background:#ffedb7"></button>
+        <button type="button" class="wheel-swatch" data-wheel-color="#e5ddfa" aria-label="Светло-сиреневый" aria-pressed="false" style="background:#e5ddfa"></button>
+        <button type="button" class="wheel-swatch" data-wheel-color="#ffdbd6" aria-label="Светло-коралловый" aria-pressed="false" style="background:#ffdbd6"></button>
+      </div>
+      <label class="wheel-custom-color" for="wheel-color">Свой цвет <input type="color" id="wheel-color" value="#d8f5df" aria-label="Выбрать произвольный цвет подсветки"></label>
+    </div>
+    <p id="wheel-status" class="wheel-status" role="status" aria-live="polite">Введите число, чтобы пересчитать таблицу. Стрелки изменяют его на 0,01.</p>
+    <div class="wheel-table-wrap" role="region" aria-label="Таблица колеса чисел с горизонтальной прокруткой" tabindex="0">
+      <table id="wheel-table" class="wheel-table"><thead><tr><th scope="col">Номер п/п</th><th scope="col">Круг 1</th><th scope="col">Круг 2</th><th scope="col">Круг 3</th><th scope="col">Круг 4</th><th scope="col">Круг 5</th><th scope="col">Круг 6</th><th scope="col">Круг 7</th><th scope="col">Круг 8</th><th scope="col">Круг 9</th></tr></thead><tbody id="wheel-body"></tbody></table>
+    </div>
+    <div class="wheel-note" id="wheel-base-help">
+      Первая строка круга N: заданное число × 360<sup>N−1</sup>. Каждая следующая строка — первая строка своего круга × номер строки. После умножения число многократно делится на 10, если превышает 100. Поиск использует исходную точность чисел, а не округлённое представление в ячейках. Результаты отображаются с точностью до 6 знаков после запятой. При поиске числа, отличающиеся только степенью 10, считаются эквивалентными: 0,123 = 1,23 = 12,3 = 123. Погрешность в процентах применяется и к этим эквивалентам; нулевая погрешность означает точное совпадение с учётом масштаба.
+    </div>
+  </section>
+  <footer>360 строк, девять кругов и 3 240 расчётных значений. Все вычисления производятся в браузере без передачи данных.</footer>
+</div>
+
+
+<div id="gem-workspace" role="tabpanel" aria-labelledby="global-gem-tab" hidden>
+  <section class="panel" aria-labelledby="gem-title">
+    <div class="gem-intro"><h2 id="gem-title">Gematria</h2><p class="info">Числовые значения букв английского и русского алфавитов. Суммы обновляются при вводе текста.</p></div>
+    <div class="gem-form">
+      <div class="gem-text-field">
+        <label for="gem-text">Текст для расчёта</label>
+        <textarea id="gem-text" rows="3" placeholder="Введите слово, имя или фразу…" spellcheck="false" autocomplete="off">andrew</textarea>
+      </div>
+    </div>
+    <div class="gem-summary" aria-live="polite">
+      <div class="gem-summary-card"><label for="gem-output-en">Английский</label><output id="gem-output-en" for="gem-text"><span class="gem-sum" id="gem-sum-en">—</span><span class="gem-arrow" aria-hidden="true">→</span><span class="gem-reduced" id="gem-reduced-en">—</span></output><small id="gem-description-en">Сумма → нумерологическое число</small></div>
+      <div class="gem-summary-card"><label for="gem-output-old">Русский древний</label><output id="gem-output-old" for="gem-text"><span class="gem-sum" id="gem-sum-old">—</span><span class="gem-arrow" aria-hidden="true">→</span><span class="gem-reduced" id="gem-reduced-old">—</span></output><small id="gem-description-old">Сумма → нумерологическое число</small></div>
+      <div class="gem-summary-card"><label for="gem-output-ru">Русский</label><output id="gem-output-ru" for="gem-text"><span class="gem-sum" id="gem-sum-ru">—</span><span class="gem-arrow" aria-hidden="true">→</span><span class="gem-reduced" id="gem-reduced-ru">—</span></output><small id="gem-description-ru">Сумма → нумерологическое число</small></div>
+    </div>
+    <div class="gem-table-shell" role="region" aria-label="Таблица соответствия букв и числовых значений" tabindex="0">
+      <table class="gem-table" id="gem-table">
+        <thead>
+          <tr><th scope="col" rowspan="2">Номер п/п</th><th scope="colgroup" colspan="2">Английский</th><th scope="colgroup" colspan="2">Русский древний</th><th scope="colgroup" colspan="2">Русский</th></tr>
+          <tr><th scope="col">Буква</th><th scope="col">Значение</th><th scope="col">Буква</th><th scope="col">Значение</th><th scope="col">Буква</th><th scope="col">Значение</th></tr>
+        </thead>
+        <tbody id="gem-body"></tbody>
+      </table>
+    </div>
+    <div class="gem-note">Буквы в строках расположены по алфавиту; регистр не влияет на расчёт. Пробелы, знаки препинания и цифры не учитываются. В ряду «Русский древний» переданы значения только для первых 25 букв (с отдельными <em>null</em>); остальные восемь букв показаны без значения и не участвуют в сумме. Нумерологическое сокращение выполняется сложением цифр, при достижении 11, 22 или 33 результат сохраняется.</div>
+  </section>
+  <footer>Все вычисления происходят непосредственно в браузере, без передачи введённого текста.</footer>
+</div>
+
+
+<div id="dt-workspace" role="tabpanel" aria-labelledby="global-dt-tab" hidden>
+  <nav class="dt-subtabs" role="tablist" aria-label="Режим таблицы времени и чисел">
+    <button type="button" id="dt-date-tab" class="dt-subtab" role="tab" aria-controls="dt-date-panel" aria-selected="true">Дата</button>
+    <button type="button" id="dt-time-tab" class="dt-subtab" role="tab" aria-controls="dt-time-panel" aria-selected="false">Дата и время</button>
+    <button type="button" id="dt-number-tab" class="dt-subtab" role="tab" aria-controls="dt-number-panel" aria-selected="false">Число времени</button>
+  </nav>
+  <section id="dt-date-panel" role="tabpanel" aria-labelledby="dt-date-tab" class="panel dt-mode-panel" data-dt-mode="date">
+    <div class="dt-panel-head"><h2>Таблица интервалов — дата</h2>
+      <p class="dt-help">Укажите две даты в каждой строке (ДД.ММ.ГГГГ). Также можно ввести два числа с точностью до 0,01 — их разница будет считаться в сутках. Месяц = 364/12 суток, год = 364 суток. Даты и числа не смешиваются внутри одной строки.</p>
+    </div>
+    <div class="dt-toolbar" data-dt-toolbar="date">
+      <button type="button" class="dt-tool dt-tool-primary" data-dt-action="add">+ Добавить строку</button>
+      <button type="button" class="dt-tool" data-dt-action="up" aria-label="Поднять выбранную строку">↑ Поднять</button>
+      <button type="button" class="dt-tool" data-dt-action="down" aria-label="Опустить выбранную строку">↓ Опустить</button>
+      <button type="button" class="dt-tool" data-dt-action="remove">Удалить строку</button>
+      <span class="dt-selected-note" data-dt-selected-note="date">Выбрана строка 1</span>
+    </div>
+    <div class="dt-table-wrap" tabindex="0" role="region" aria-label="Таблица для дат с прокруткой">
+      <table class="dt-table" id="dt-date-table"><thead><tr>
+        <th>Первая дата</th><th>Вторая дата</th><th>В часах</th><th>В днях</th><th>В неделях</th><th>В месяцах</th><th>В годах</th><th>гр. недели</th><th>гр. месяца</th><th>гр. года</th>
+      </tr></thead><tbody id="dt-date-body"></tbody></table>
+    </div>
+    <div class="dt-search" data-dt-search="date">
+      <div class="dt-search-field"><label for="dt-date-target">Искомое число</label><input type="text" inputmode="decimal" id="dt-date-target" placeholder="1,25" autocomplete="off"></div>
+      <div class="dt-search-field"><label for="dt-date-tolerance">Погрешность, %</label><input type="text" inputmode="decimal" id="dt-date-tolerance" value="1,00" autocomplete="off"></div>
+      <div class="dt-search-buttons"><button type="button" class="action" data-dt-find="date">Найти</button><button type="button" class="wheel-reset" data-dt-clear="date">Очистить</button></div>
+    </div>
+    <div class="dt-palette" data-dt-palette="date"><span>Цвет выделения</span>
+      <button type="button" class="dt-color" data-dt-color="#d8f5df" style="background:#d8f5df" aria-label="Светло-зелёный" aria-pressed="true"></button>
+      <button type="button" class="dt-color" data-dt-color="#ccecf8" style="background:#ccecf8" aria-label="Голубой" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#ffedb7" style="background:#ffedb7" aria-label="Жёлтый" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#e5ddfa" style="background:#e5ddfa" aria-label="Сиреневый" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#ffdbd6" style="background:#ffdbd6" aria-label="Коралловый" aria-pressed="false"></button>
+      <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:#537083">Свой цвет <input type="color" id="dt-date-color" value="#d8f5df"></label>
+    </div>
+    <div class="dt-status" id="dt-date-status" role="status" aria-live="polite">Добавьте даты или числа — результаты обновятся автоматически.</div>
+  </section>
+  <section id="dt-time-panel" role="tabpanel" aria-labelledby="dt-time-tab" class="panel dt-mode-panel" data-dt-mode="time" hidden>
+    <div class="dt-panel-head"><h2>Таблица интервалов — дата и время</h2>
+      <p class="dt-help">Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ. Можно также использовать числа с двумя знаками после запятой: их разница трактуется как количество суток. В расчётах сохраняется точный интервал, без округления.</p>
+    </div>
+    <div class="dt-toolbar" data-dt-toolbar="time">
+      <button type="button" class="dt-tool dt-tool-primary" data-dt-action="add">+ Добавить строку</button>
+      <button type="button" class="dt-tool" data-dt-action="up" aria-label="Поднять выбранную строку">↑ Поднять</button>
+      <button type="button" class="dt-tool" data-dt-action="down" aria-label="Опустить выбранную строку">↓ Опустить</button>
+      <button type="button" class="dt-tool" data-dt-action="remove">Удалить строку</button>
+      <span class="dt-selected-note" data-dt-selected-note="time">Выбрана строка 1</span>
+    </div>
+    <div class="dt-table-wrap" tabindex="0" role="region" aria-label="Таблица дат и времени с прокруткой">
+      <table class="dt-table dt-table--time" id="dt-time-table"><thead><tr>
+        <th>Первая дата и время</th><th>Вторая дата и время</th><th>В секундах</th><th>В минутах</th><th>В часах</th><th>В 12 часах</th><th>В днях</th><th>В неделях</th><th>В месяцах</th><th>В годах</th><th>гр. минуты</th><th>гр. часа</th><th>гр. 12 часов</th><th>гр. дня</th><th>гр. недели</th><th>гр. месяца</th>
+      </tr></thead><tbody id="dt-time-body"></tbody></table>
+    </div>
+    <div class="dt-search" data-dt-search="time">
+      <div class="dt-search-field"><label for="dt-time-target">Искомое число</label><input type="text" inputmode="decimal" id="dt-time-target" placeholder="1,25" autocomplete="off"></div>
+      <div class="dt-search-field"><label for="dt-time-tolerance">Погрешность, %</label><input type="text" inputmode="decimal" id="dt-time-tolerance" value="1,00" autocomplete="off"></div>
+      <div class="dt-search-buttons"><button type="button" class="action" data-dt-find="time">Найти</button><button type="button" class="wheel-reset" data-dt-clear="time">Очистить</button></div>
+    </div>
+    <div class="dt-palette" data-dt-palette="time"><span>Цвет выделения</span>
+      <button type="button" class="dt-color" data-dt-color="#d8f5df" style="background:#d8f5df" aria-label="Светло-зелёный" aria-pressed="true"></button>
+      <button type="button" class="dt-color" data-dt-color="#ccecf8" style="background:#ccecf8" aria-label="Голубой" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#ffedb7" style="background:#ffedb7" aria-label="Жёлтый" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#e5ddfa" style="background:#e5ddfa" aria-label="Сиреневый" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#ffdbd6" style="background:#ffdbd6" aria-label="Коралловый" aria-pressed="false"></button>
+      <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:#537083">Свой цвет <input type="color" id="dt-time-color" value="#d8f5df"></label>
+    </div>
+    <div class="dt-status" id="dt-time-status" role="status" aria-live="polite">Введите два момента или два числа, чтобы получить эквиваленты интервала.</div>
+  </section>
+  <section id="dt-number-panel" role="tabpanel" aria-labelledby="dt-number-tab" class="panel dt-mode-panel" data-dt-mode="number" hidden>
+    <div class="dt-panel-head"><h2>Таблица преобразования числа времени</h2>
+      <p class="dt-help">Введите число с точностью до трёх знаков и выберите обычную или градусную единицу времени в каждой строке. Расчёты ведутся по точным значениям: 12 часов = половина суток, неделя = 7 суток, месяц = 364/12 суток, год = 364 суток. Эквиваленты — до 4 знаков, градусы — до 2.</p>
+    </div>
+    <div class="dt-toolbar" data-dt-toolbar="number">
+      <button type="button" class="dt-tool dt-tool-primary" data-dt-action="add">+ Добавить строку</button>
+      <button type="button" class="dt-tool" data-dt-action="up" aria-label="Поднять выбранную строку">↑ Поднять</button>
+      <button type="button" class="dt-tool" data-dt-action="down" aria-label="Опустить выбранную строку">↓ Опустить</button>
+      <button type="button" class="dt-tool" data-dt-action="remove">Удалить строку</button>
+      <span class="dt-selected-note" data-dt-selected-note="number">Выбрана строка 1</span>
+    </div>
+    <div class="dt-table-wrap" tabindex="0" role="region" aria-label="Таблица числа времени с горизонтальной прокруткой">
+      <table class="dt-table dt-table--number" id="dt-number-table"><thead><tr>
+        <th>Число</th><th>Единица времени</th><th>В секундах</th><th>В минутах</th><th>В часах</th><th>В 12 часах</th><th>В днях</th><th>В неделях</th><th>В месяцах</th><th>В годах</th><th>гр. минуты</th><th>гр. часа</th><th>гр. 12 часов</th><th>гр. дня</th><th>гр. недели</th><th>гр. месяца</th><th>гр. года</th>
+      </tr></thead><tbody id="dt-number-body"></tbody></table>
+    </div>
+    <div class="dt-search" data-dt-search="number">
+      <div class="dt-search-field"><label for="dt-number-target">Искомое число</label><input type="text" inputmode="decimal" id="dt-number-target" placeholder="1,25" autocomplete="off"></div>
+      <div class="dt-search-field"><label for="dt-number-tolerance">Погрешность, %</label><input type="text" inputmode="decimal" id="dt-number-tolerance" value="1,00" autocomplete="off"></div>
+      <div class="dt-search-buttons"><button type="button" class="action" data-dt-find="number">Найти</button><button type="button" class="wheel-reset" data-dt-clear="number">Очистить</button></div>
+    </div>
+    <div class="dt-palette" data-dt-palette="number"><span>Цвет выделения</span>
+      <button type="button" class="dt-color" data-dt-color="#d8f5df" style="background:#d8f5df" aria-label="Светло-зелёный" aria-pressed="true"></button>
+      <button type="button" class="dt-color" data-dt-color="#ccecf8" style="background:#ccecf8" aria-label="Голубой" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#ffedb7" style="background:#ffedb7" aria-label="Жёлтый" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#e5ddfa" style="background:#e5ddfa" aria-label="Сиреневый" aria-pressed="false"></button>
+      <button type="button" class="dt-color" data-dt-color="#ffdbd6" style="background:#ffdbd6" aria-label="Коралловый" aria-pressed="false"></button>
+      <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:#537083">Свой цвет <input type="color" id="dt-number-color" value="#d8f5df"></label>
+    </div>
+    <div class="dt-status" id="dt-number-status" role="status" aria-live="polite">Введите число времени и выберите единицу, чтобы получить эквиваленты.</div>
+  </section>
+  <footer>Все таблицы и поиск работают локально, без сервера. Поиск допускает умножение искомого числа на любую степень 10: 0,125 = 1,25 = 12,5 = 125. Точность вычислений сохраняется; интервалы отображаются с четырьмя знаками после запятой, а градусы — с двумя.</footer>
+</div>
+
+</main>
+<script>
+(() => {
+'use strict';
+const names = ['Секунды','Минуты','Часы','12 часов','Дни','Недели','Месяцы','Годы'];
+const dayNames = ['Часы','Дни','Недели','Месяцы','Годы'];
+const shortNames = ['Секунды','Минуты','Часы','12 часов','Дни','Недели','Месяцы'];
+const degreeTimeTargets = ['Минуты','Часы','12 часов','Дни','Недели','Месяцы'];
+const angleTimeSources = ['Секунды','Минуты','Часы','12 часов','Дни','Недели','Месяцы'];
+const inUnits={'Секунды':'В секундах','Минуты':'В минутах','Часы':'В часах','12 часов':'В 12 часах','Дни':'В днях','Недели':'В неделях','Месяцы':'В месяцах','Годы':'В годах'};
+const dayMS = 86400000n;
+const maxTimestamp = BigInt(Date.UTC(9999,11,31,23,59,59,999));
+const $ = id => document.getElementById(id);
+const modeButtons = [...document.querySelectorAll('[data-mode]')];
+let mode = 1, allRows = [];
+// Независимое состояние значений даты/времени для всех четырех сценариев.
+// Изменение даты в одном сценарии никогда не изменяет поля другого.
+const datesByMode = {
+  1: {last: '2026-10-16', first: ''},
+  2: {last: '2026-10-16T13:49', first: ''},
+  3: {last: '2026-10-16', first: '2026-07-15'},
+  4: {last: '2026-10-16T13:49', first: '2026-07-15T08:30'}
+};
+let formMode = null;
+function abs(n){return n<0n?-n:n}
+function gcd(a,b){a=abs(a);b=abs(b);while(b){[a,b]=[b,a%b]}return a||1n}
+function F(n,d=1n){n=BigInt(n);d=BigInt(d);if(!d)throw Error('Деление на ноль');if(d<0n){n=-n;d=-d}let g=gcd(n,d);return {n:n/g,d:d/g}}
+function mul(a,b){return F(a.n*b.n,a.d*b.d)}
+function div(a,b){return F(a.n*b.d,a.d*b.n)}
+function compare(a,b){let v=a.n*b.d-b.n*a.d;return v<0n?-1:v>0n?1:0}
+function floorFrac(f){let q=f.n/f.d;return f.n<0n&&f.n%f.d?q-1n:q}
+function power10(x,k){return k>=0?mul(x,F(10n**BigInt(k))):div(x,F(10n**BigInt(-k)))}
+// Дробная часть без округления: 3,157 недели → 0,157 × 360 = 56,52°.
+function fractionalDegrees(f){const rem=f.n%f.d;return mul(F(rem<0n?rem+f.d:rem,f.d),F(360n))}
+function spacify(s){return s.replace(/\B(?=(\d{3})+(?!\d))/g,' ')}
+function formatFixed(x,digits){const scale=10n**BigInt(digits);const v=abs(x.n)*scale;const q=(v*2n+x.d)/(2n*x.d);const s=spacify((q/scale).toString());return (x.n<0n?'-':'')+s+','+(q%scale).toString().padStart(digits,'0')}
+function format4(x){return formatFixed(x,4)}
+function format2(x){return formatFixed(x,2)}
+function two(x){return String(x).padStart(2,'0')}
+function formatDateUTC(date,withTime){let s=`${two(date.getUTCDate())}.${two(date.getUTCMonth()+1)}.${date.getUTCFullYear()}`;return withTime?s+` ${two(date.getUTCHours())}:${two(date.getUTCMinutes())}`:s}
+function parseDate(s,withTime){
+ const raw=String(s).trim();
+ const local=raw.match(withTime?/^(\d{2})\.(\d{2})\.(\d{4})[ T](\d{2}):(\d{2})$/:/^(\d{2})\.(\d{2})\.(\d{4})$/);
+ const iso=raw.match(withTime?/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/:/^(\d{4})-(\d{2})-(\d{2})$/);
+ if(!local&&!iso)throw Error('Укажи дату в формате '+(withTime?'ДД.ММ.ГГГГ ЧЧ:ММ.':'ДД.ММ.ГГГГ.'));
+ let y,mo,d,h=0,mi=0;
+ if(local){d=Number(local[1]);mo=Number(local[2]);y=Number(local[3]);if(withTime){h=Number(local[4]);mi=Number(local[5]);}}
+ else {y=Number(iso[1]);mo=Number(iso[2]);d=Number(iso[3]);if(withTime){h=Number(iso[4]);mi=Number(iso[5]);}}
+ if(y<100||y>9999||mo<1||mo>12||d<1||d>31||h>23||mi>59)throw Error('Некорректная дата или время.');
+ const ts=Date.UTC(y,mo-1,d,h,mi),dt=new Date(ts);
+ if(dt.getUTCFullYear()!==y||dt.getUTCMonth()+1!==mo||dt.getUTCDate()!==d||dt.getUTCHours()!==h||dt.getUTCMinutes()!==mi)throw Error('Некорректная дата или время.');
+ return BigInt(ts);
+}
+function formatManual(s,withTime){try{return formatDateUTC(new Date(Number(parseDate(s,withTime))),withTime)}catch(e){return s}}
+function datetime(n){return new Date(Number(n))}
+const unitDays = {
+ 'Секунды':F(1n,86400n),'Минуты':F(1n,1440n),'Часы':F(1n,24n),'12 часов':F(1n,2n),
+ 'Дни':F(1n),'Недели':F(7n),'Месяцы':F(364n,12n),'Годы':F(364n)
+};
+function compute(){
+ const timeMode=(mode===2||mode===4);
+ const twoDates=(mode===3||mode===4);
+ const tEnd=parseDate($('last').value,timeMode), tStart=twoDates?parseDate($('first').value,timeMode):null;
+ if(twoDates && tEnd<tStart)throw Error('Вторая дата должна быть не раньше первой.');
+ const fromYear=BigInt(Date.UTC(datetime(tEnd).getUTCFullYear(),0,1));
+ let interval;
+ if(mode===1)interval=F((tEnd-fromYear)/dayMS+1n);
+ else if(mode===3)interval=F((tEnd-tStart)/dayMS);
+ else if(mode===2)interval=F((tEnd-(tEnd/dayMS)*dayMS)/1000n);
+ else interval=F((tEnd-tStart)/1000n);
+ const srcUnits=(mode===2)?shortNames:(mode===4?names:dayNames);
+ let values={};
+ if(!timeMode){
+   values={'Часы':mul(interval,F(24n)), 'Дни':interval, 'Недели':div(interval,F(7n)),
+   'Месяцы':mul(interval,F(12n,364n)), 'Годы':div(interval,F(364n))};
+ }else{
+   values={'Секунды':interval,'Минуты':div(interval,F(60n)),
+   'Часы':div(interval,F(3600n)),'12 часов':div(interval,F(43200n)),
+   'Дни':div(interval,F(86400n)),
+   'Недели':div(interval,F(604800n)),
+   'Месяцы':mul(interval,F(12n,364n*86400n)),
+   'Годы':div(interval,F(364n*86400n))};
+ }
+ const minp=Number($('minpower').value),maxp=Number($('maxpower').value);
+ if(!Number.isInteger(minp)||!Number.isInteger(maxp)||minp>maxp||minp< -12||maxp>10)throw Error('Диапазон степеней должен быть целым от −12 до +10, с началом не больше конца.');
+ let rows=[];
+ const availableMs=maxTimestamp-tEnd;
+ // Обычные преобразования исходных чисел.
+ for(const src of srcUnits){for(const dst of srcUnits){for(let p=minp;p<=maxp;p++){
+   const transformed=power10(values[src],p);
+   const delta=mul(transformed,unitDays[dst]);
+   if(compare(delta,F(0n))<=0)continue;
+   if(!timeMode && compare(delta,F(1n))<0)continue;
+   if((mode===2 || mode===4) && compare(delta,F(1n,1440n))<0)continue;
+   if(compare(mul(delta,F(dayMS)),F(availableMs))>0)continue;
+   const instant=timeMode?tEnd+floorFrac(mul(delta,F(dayMS))):tEnd+floorFrac(delta)*dayMS;
+   rows.push({src,dst,p,original:values[src],transformed,delta,
+     formattedDate:formatDateUTC(datetime(instant),timeMode)});
+ }}}
+ // Дополнительные пути с градусами для всех четырёх сценариев.
+ let sourceDegrees=[], angleSeeds=[];
+ if(mode===1 || mode===3){
+   sourceDegrees=[
+     {label:'Неделя',src:'Градус недели',value:fractionalDegrees(values['Недели'])},
+     {label:'Месяц',src:'Градус месяца',value:fractionalDegrees(values['Месяцы'])},
+     {label:'Год',src:'Градус года',value:fractionalDegrees(values['Годы'])}
+   ];
+   // А. Значения исходных градусов (без деления на 360) проходят обычную
+   // переинтерпретацию в часы / дни / недели / месяцы / годы.
+   for(const seed of sourceDegrees){
+     for(const dst of dayNames){for(let p=minp;p<=maxp;p++){
+       const transformed=power10(seed.value,p);
+       const delta=mul(transformed,unitDays[dst]);
+       if(compare(delta,F(1n))<0 || compare(mul(delta,F(dayMS)),F(availableMs))>0)continue;
+       const instant=tEnd+floorFrac(delta)*dayMS;
+       rows.push({src:seed.src,dst,p,original:seed.value,transformed,delta,
+         originType:'degree',formattedDate:formatDateUTC(datetime(instant),false)});
+     }}
+   }
+   // Б. Исходные числа становятся углами через 10^q в диапазоне [10°, 360°].
+   // После деления угла на 360 БАЗОВОЕ ЧИСЛО НЕ масштабируется повторно.
+   // Оно прибавляется ровно один раз в каждой из трёх единиц:
+   // недели (×7 дней), месяцы (×364/12 дней), годы (×364 дней).
+   for(const originalUnit of dayNames){for(let q=minp;q<=maxp;q++){
+     const angle=power10(values[originalUnit],q);
+     if(compare(angle,F(10n))<0 || compare(angle,F(360n))>0)continue;
+     const baseline=div(angle,F(360n));
+     const angleForms={'Часы':'часов','Дни':'дней','Недели':'недель','Месяцы':'месяцев','Годы':'лет'};
+     const src=`Угол из ${angleForms[originalUnit]}: ${format2(angle)}° ÷ 360`;
+     angleSeeds.push({label:originalUnit,src,angle,baseline,anglePower:q});
+     for(const dst of ['Недели','Месяцы','Годы']){
+       const delta=mul(baseline,unitDays[dst]);
+       if(compare(delta,F(1n))<0 || compare(mul(delta,F(dayMS)),F(availableMs))>0)continue;
+       const instant=tEnd+floorFrac(delta)*dayMS;
+       rows.push({src,dst,p:0,original:baseline,transformed:baseline,delta,
+         originType:'angle',angle,anglePower:q,originalUnit,
+         formattedDate:formatDateUTC(datetime(instant),false)});
+     }
+   }}
+ }else{
+   // Вариант A: дробные части исходных часов / 12 часов / дней / недель / месяцев → градусы.
+   // Каждый градусный источник переинтерпретируется в доступные единицы сценария.
+   sourceDegrees=[
+     {label:'Час',src:'Градус часа',value:fractionalDegrees(values['Часы'])},
+     {label:'12 часов',src:'Градус 12 часов',value:fractionalDegrees(values['12 часов'])},
+     {label:'День',src:'Градус дня',value:fractionalDegrees(values['Дни'])},
+     {label:'Неделя',src:'Градус недели',value:fractionalDegrees(values['Недели'])},
+     {label:'Месяц',src:'Градус месяца',value:fractionalDegrees(values['Месяцы'])}
+   ];
+   for(const seed of sourceDegrees){
+     for(const dst of srcUnits){for(let p=minp;p<=maxp;p++){
+       const transformed=power10(seed.value,p);
+       const delta=mul(transformed,unitDays[dst]);
+       if(compare(delta,F(1n,1440n))<0 || compare(mul(delta,F(dayMS)),F(availableMs))>0)continue;
+       const instant=tEnd+floorFrac(mul(delta,F(dayMS)));
+       rows.push({src:seed.src,dst,p,original:seed.value,transformed,delta,
+         originType:'degree',formattedDate:formatDateUTC(datetime(instant),true)});
+     }}
+   }
+   // Вариант Б: исходные секунды / минуты / часы / 12 часов / дни / недели / месяцы
+   // масштабируются в угол [10°,360°]. Далее БАЗОВОЕ ЧИСЛО = угол / 360
+   // применяется строго как минуты, часы, 12 часов, дни, недели и месяцы.
+   // Дополнительного масштабирования базового числа нет, секунды и годы не используются.
+   const angleForms={
+     'Секунды':'секунд','Минуты':'минут','Часы':'часов','12 часов':'12 часов',
+     'Дни':'дней','Недели':'недель','Месяцы':'месяцев'
+   };
+   for(const originalUnit of angleTimeSources){for(let q=minp;q<=maxp;q++){
+     const angle=power10(values[originalUnit],q);
+     if(compare(angle,F(10n))<0 || compare(angle,F(360n))>0)continue;
+     const baseline=div(angle,F(360n));
+     const src=`Угол из ${angleForms[originalUnit]}: ${format2(angle)}° ÷ 360`;
+     angleSeeds.push({label:originalUnit,src,angle,baseline,anglePower:q});
+     for(const dst of degreeTimeTargets){
+       const delta=mul(baseline,unitDays[dst]);
+       if(compare(delta,F(1n,1440n))<0 || compare(mul(delta,F(dayMS)),F(availableMs))>0)continue;
+       const instant=tEnd+floorFrac(mul(delta,F(dayMS)));
+       rows.push({src,dst,p:0,original:baseline,transformed:baseline,delta,
+         originType:'angle',angle,anglePower:q,originalUnit,
+         formattedDate:formatDateUTC(datetime(instant),true)});
+     }
+   }}
+ }
+ rows.sort((a,b)=>compare(a.delta,b.delta)||a.src.localeCompare(b.src,'ru')||srcUnits.indexOf(a.dst)-srcUnits.indexOf(b.dst)||a.p-b.p);
+ // Сценарии 1 и 2: исходный интервал представлен в разных единицах.
+ // При умножении каждой исходной величины на ОДНУ И ТУ ЖЕ степень десяти
+ // без изменения единицы получается эквивалентная прибавка:
+ // в сценарии 1: часы→часы, дни→дни, недели→недели, месяцы→месяцы, годы→годы;
+ // в сценарии 2: секунды→секунды, минуты→минуты, часы→часы, дни→дни.
+ // Для каждой степени 10^p оставляем только Дни→Дни. НЕ удаляем другие
+ // преобразования, даже если у них совпадают точная прибавка или видимая дата.
+ let removedDuplicates=0;
+ if(mode===1 || mode===2){
+   const diagonalPowers=new Map();
+   for(const r of rows){
+     if(r.src!==r.dst)continue;
+     const prior=diagonalPowers.get(r.p);
+     if(!prior || r.src==='Дни')diagonalPowers.set(r.p,r);
+   }
+   const keep=new Set(diagonalPowers.values());
+   const filtered=[];
+   for(const r of rows){
+     if(r.src!==r.dst || keep.has(r))filtered.push(r);
+     else removedDuplicates++;
+   }
+   rows=filtered;
+ }
+ return {values,srcUnits,rows,timeMode,interval,tEnd,tStart,removedDuplicates,sourceDegrees,angleSeeds};
+}
+function escapeHTML(v){return String(v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function showResults(data){
+ const {srcUnits,values,rows,timeMode,interval,tEnd,tStart,removedDuplicates,sourceDegrees,angleSeeds}=data;
+ allRows=rows;
+ const sourceHtml=srcUnits.map(u=>`<tr><td>${escapeHTML(u)}</td><td class="numeric">${format4(values[u])}</td></tr>`).join('');
+ $('source-body').innerHTML=sourceHtml;
+ $('source-count').textContent=srcUnits.length+' единиц';
+ const degreeMode=(mode===1||mode===3);
+ $('degrees-panel').hidden=false;
+ $('degree-count').textContent=sourceDegrees.length+' значений';
+ $('degree-description').textContent=degreeMode
+   ? 'Дробная часть исходных недель, месяцев и лет × 360°. Для расчётов используется полное значение.'
+   : 'Дробная часть исходных часов, 12 часов, дней, недель и месяцев × 360°. Для расчётов используется полное значение.';
+ $('angle-description').textContent=degreeMode
+   ? 'Исходные числа масштабируются до угла 10–360°; после деления на 360 базовое число без дальнейшего масштабирования прибавляется как недели, месяцы и годы.'
+   : 'Секунды, минуты, часы, 12 часов, дни, недели и месяцы масштабируются до угла 10–360°; после деления на 360 базовое число без дальнейшего масштабирования прибавляется только как минуты, часы, 12 часов, дни, недели и месяцы.';
+ {
+   $('source-degree-body').innerHTML=sourceDegrees.map(seed=>`<tr><td>${escapeHTML(seed.label)}</td><td class="numeric">${format2(seed.value)}</td></tr>`).join('');
+   $('angle-body').innerHTML=angleSeeds.map(seed=>`<tr><td>${escapeHTML(seed.label)}</td><td class="numeric">${format2(seed.angle)}°</td><td class="numeric">${format4(seed.baseline)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">В выбранном диапазоне степеней нет углов от 10 до 360°.</td></tr>';
+   $('angle-summary').textContent=`Найдено исходных углов: ${angleSeeds.length}. После деления каждого угла на 360 базовое число без повторного масштабирования рассматривается как ${degreeMode?'недели, месяцы и годы':'минуты, часы, 12 часов, дни, недели и месяцы'}. Градусы дробных частей обрабатываются как самостоятельные числа.`;
+ }
+ let intervalDesc;
+ if(mode===1) intervalDesc=`С 01.01.${datetime(tEnd).getUTCFullYear()} включительно · ${format4(values['Дни'])} дней`;
+ if(mode===3) intervalDesc=`С ${formatDateUTC(datetime(tStart),false)} по ${formatDateUTC(datetime(tEnd),false)} без дополнительного дня · ${format4(values['Дни'])} дней`;
+ if(mode===2) intervalDesc=`С 00:00 до ${formatDateUTC(datetime(tEnd),true).slice(-5)} · ${format4(values['Минуты'])} минут`;
+ if(mode===4) intervalDesc=`С ${formatDateUTC(datetime(tStart),true)} по ${formatDateUTC(datetime(tEnd),true)} · ${format4(values['Минуты'])} минут`;
+ $('interval-label').textContent=intervalDesc;
+ $('result-count').textContent=rows.length+' вариантов';
+ $('results-note').textContent=mode===1
+   ? `Все допустимые результаты отсортированы по точной прибавке. Добавлены исходные градусы и прибавки нормализованных углов без повторного масштабирования. Эквивалентные масштабы первоначального периода объединены (исключено: ${removedDuplicates}); сохранён вариант по дням. Совпадающие даты не удаляются.`
+   : mode===2
+     ? `Все результаты отсортированы по точной прибавке. Интервалы меньше минуты и эквивалентные масштабирования исходного периода исключены (удалено: ${removedDuplicates}); вариант по дням сохранён. Учитываются пять градусных источников и нормализованные углы без повторного масштабирования.`
+     : (mode===4 ? 'Все результаты отсортированы по точной прибавке, прибавки меньше минуты исключены. Добавлены пять градусных источников и нормализованные углы без повторного масштабирования. Совпадающие видимые даты сохраняются.' : 'Вся выборка рассчитана с учётом исходных градусов и нормализованных углов (без повторного масштабирования), затем отсортирована по точной прибавке. Совпадающие видимые даты допустимы.');
+ const displayUnits = srcUnits;
+ const degreeHeadings = !timeMode
+   ? ['гр. недели','гр. месяца','гр. года']
+   : ['гр. минуты','гр. часа','гр. 12 часов','гр. дня','гр. недели','гр. месяца'];
+ const extra=displayUnits.map(u=>`<th class="numeric">${inUnits[u]}</th>`).join('')
+   + degreeHeadings.map(u=>`<th class="numeric">${u}</th>`).join('');
+ $('result-head').innerHTML=`<tr><th>Исходное число</th><th>Исходная единица</th><th class="main-number numeric">Преобразованное число</th><th class="main-number">Новая единица</th><th>Итоговая дата${timeMode?' и время':''}</th>${extra}</tr>`;
+ for(const id of ['filter-source','filter-target']){
+   const oldVal=$(id).value;
+   const choices=id==='filter-source'?[...new Set(rows.map(r=>r.src))]:srcUnits;
+   $(id).innerHTML=`<option value="">${id==='filter-source'?'Все исходные единицы':'Все новые единицы'}</option>`+choices.map(u=>`<option value="${escapeHTML(u)}">${escapeHTML(u)}</option>`).join('');
+   $(id).value=choices.includes(oldVal)?oldVal:'';
+ }
+ updateFilter();
+}
+function updateFilter(){
+ let src=$('filter-source').value,target=$('filter-target').value,q=$('filter-search').value.trim().toLowerCase();
+ // Все единицы, доступные для преобразования в данном сценарии, показаны и как эквиваленты.
+ let units=(mode===2?shortNames:(mode===4?names:dayNames));
+ let selected=allRows.filter(r=>(!src||r.src===src)&&(!target||r.dst===target)&&(!q||[r.formattedDate,format4(r.original),format4(r.transformed),r.src,r.dst].some(v=>v.toLowerCase().includes(q))));
+ const snippets=[];
+ for(const r of selected){
+   const ex=units.map(u=>`<td class="numeric">${format4(div(r.delta,unitDays[u]))}</td>`).join('');
+   const degrees=(mode===1||mode===3)
+     ? ['Недели','Месяцы','Годы'].map(u=>`<td class="numeric degree-cell">${format2(fractionalDegrees(div(r.delta,unitDays[u])))}</td>`).join('')
+     : [
+         div(r.delta,unitDays['Минуты']),
+         div(r.delta,unitDays['Часы']),
+         div(div(r.delta,unitDays['Часы']),F(12n)),
+         div(r.delta,unitDays['Дни']),
+         div(r.delta,unitDays['Недели']),
+         div(r.delta,unitDays['Месяцы'])
+       ].map(v=>`<td class="numeric degree-cell">${format2(fractionalDegrees(v))}</td>`).join('');
+   snippets.push(`<tr><td class="numeric">${format4(r.original)}</td><td class="${r.originType?'angle-origin':''}">${escapeHTML(r.src)}</td><td class="main-number numeric">${format4(r.transformed)}</td><td class="main-number">${escapeHTML(r.dst)}</td><td class="date-cell">${escapeHTML(r.formattedDate)}</td>${ex}${degrees}</tr>`);
+ }
+ $('result-body').innerHTML=snippets.join('')||`<tr><td class="empty" colspan="${5+units.length+((mode===1||mode===3)?3:6)}">Нет строк по выбранным фильтрам.</td></tr>`;
+ $('result-count').textContent=selected.length===allRows.length?`${allRows.length} вариантов`:`${selected.length} из ${allRows.length}`;
+}
+function setMode(next){
+ // Перед переключением сохранить ввод ТОЛЬКО текущего сценария.
+ if(formMode !== null){
+   datesByMode[formMode].last = $('last').value;
+   datesByMode[formMode].first = $('first').value;
+ }
+ const nowTime=(next===2||next===4);
+ $('last').type='text';
+ $('first').type='text';
+ $('last').placeholder=nowTime?'ДД.ММ.ГГГГ ЧЧ:ММ':'ДД.ММ.ГГГГ';
+ $('first').placeholder=$('last').placeholder;
+ // Восстанавливаем отдельные значения следующего сценария, а не копируем даты.
+ $('last').value=formatManual(datesByMode[next].last,nowTime);
+ $('first').value=datesByMode[next].first?formatManual(datesByMode[next].first,nowTime):'';
+ mode=next;
+ formMode=next;
+ modeButtons.forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.mode)===mode)));
+ $('first-field').hidden=!(mode===3||mode===4);
+ $('first').required=mode===3||mode===4;
+ $('first-label').textContent=mode===4?'Первая дата и время':'Первая дата';
+ $('first-stepper').hidden=mode!==3;
+ $('last-stepper').hidden=!(mode===1||mode===3);
+ $('transfer-dt').hidden=!(mode===3||mode===4);
+ $('last-label').textContent=(mode===1?'Заданная дата':mode===2?'Заданные дата и время':mode===3?'Вторая дата':'Вторая дата и время');
+ $('explanation').textContent=(mode===1?'От 1 января включительно. ':mode===2?'От начала дня (00:00). ':mode===3?'Разница между двумя датами без дополнительного дня. ':'Точный интервал между двумя моментами. ')+(mode===1?'Прибавки менее суток исключаются. Добавлены градусы недель/месяцев/лет и базовые числа углов 10–360° без повторного масштабирования, только в неделях, месяцах и годах. Повторные представления исходного периода объединяются; одинаковые даты сохраняются.':mode===3?'Прибавки менее суток исключаются. Градусы исходного периода преобразуются как прежде, а базовые числа углов 10–360° добавляются только как недели, месяцы и годы без масштабирования.':mode===2?'Прибавки меньше одной минуты исключаются. Доступны секунды, минуты, часы, 12 часов, дни, недели, месяцы; добавлены градусные источники и углы 10–360°. Эквивалентные исходные масштабирования объединяются.':'Прибавки меньше одной минуты исключаются. Доступны секунды, минуты, часы, 12 часов, дни, недели, месяцы и годы; добавлены градусные источники и углы 10–360°.');
+ try {showResults(compute());$('error').style.display='none'}catch(err){$('error').textContent=err.message;$('error').style.display='block'}
+}
+// Сдвиг введённой даты на календарные сутки без влияния на другие сценарии.
+function shiftCalendarDate(fieldId,days){
+ if(mode!==1&&mode!==3)return;
+ if(fieldId==='first'&&mode!==3)return;
+ const input=$(fieldId);let ms;
+ try{ms=Number(parseDate(input.value,false))}catch(e){return;}
+ const dt=new Date(ms);dt.setUTCDate(dt.getUTCDate()+days);
+ if(dt.getUTCFullYear()<100||dt.getUTCFullYear()>9999)return;
+ input.value=formatDateUTC(dt,false);
+ datesByMode[mode][fieldId]=input.value;
+ try{showResults(compute());$('error').style.display='none'}catch(err){$('error').textContent=err.message;$('error').style.display='block'}
+}
+// Экспорт и восстановление состояния сценариев без связи между датами.
+window.AppTime={
+ snapshot(){
+   datesByMode[mode].first=$('first').value;datesByMode[mode].last=$('last').value;
+   return {mode,datesByMode:JSON.parse(JSON.stringify(datesByMode)),minpower:$('minpower').value,maxpower:$('maxpower').value,filterSource:$('filter-source').value,filterTarget:$('filter-target').value,filterSearch:$('filter-search').value};
+ },
+ restore(data){
+   if(!data||!data.datesByMode)return;
+   for(const key of [1,2,3,4])if(data.datesByMode[key]) datesByMode[key]={...datesByMode[key],...data.datesByMode[key]};
+   if(data.minpower!==undefined)$('minpower').value=data.minpower;
+   if(data.maxpower!==undefined)$('maxpower').value=data.maxpower;
+   formMode=null;setMode([1,2,3,4].includes(Number(data.mode))?Number(data.mode):1);
+   $('filter-source').value=data.filterSource||'';$('filter-target').value=data.filterTarget||'';$('filter-search').value=data.filterSearch||'';updateFilter();
+ },
+ exportSheets(){
+   const current=mode;
+   const sheets=[];
+   for(let i=1;i<=4;i++){
+     setMode(i);
+     try{
+       const r=compute(),units=r.srcUnits;
+       const head=['Исходное число','Исходная единица','Преобразованное число','Новая единица','Итоговая дата',...units.map(u=>inUnits[u]),...((i===1||i===3)?['гр. недели','гр. месяца','гр. года']:['гр. минуты','гр. часа','гр. 12 часов','гр. дня','гр. недели','гр. месяца'])];
+       const arr=[['Сценарий '+i,''],['Первая дата',i>2?$('first').value:'—'],['Вторая дата / момент',$('last').value],['Исходные значения','']];
+       for(const u of units)arr.push([u,format4(r.values[u])]);
+       arr.push([],head);
+       for(const v of r.rows){
+         const ex=units.map(u=>format4(div(v.delta,unitDays[u])));
+         const deg=(i===1||i===3)?['Недели','Месяцы','Годы'].map(u=>format2(fractionalDegrees(div(v.delta,unitDays[u])))):[div(v.delta,unitDays['Минуты']),div(v.delta,unitDays['Часы']),div(div(v.delta,unitDays['Часы']),F(12n)),div(v.delta,unitDays['Дни']),div(v.delta,unitDays['Недели']),div(v.delta,unitDays['Месяцы'])].map(vv=>format2(fractionalDegrees(vv)));
+         arr.push([format4(v.original),v.src,format4(v.transformed),v.dst,v.formattedDate,...ex,...deg]);
+       }
+       sheets.push({name:'Время '+i,rows:arr});
+     }catch(e){sheets.push({name:'Время '+i,rows:[['Ошибка при вычислении',e.message],['Первая дата',i>2?$('first').value:'—'],['Вторая дата / момент',$('last').value]]});}
+   }
+   setMode(current);
+   return sheets;
+ }
+};
+$('transfer-dt').addEventListener('click',()=>{
+ if(mode!==3&&mode!==4)return;
+ try{
+   parseDate($('first').value,mode===4);parseDate($('last').value,mode===4);
+   if(parseDate($('last').value,mode===4)<parseDate($('first').value,mode===4))throw Error('Вторая дата должна быть не раньше первой.');
+   if(!window.AppDT)throw Error('Таблица ещё не готова.');
+   const target=mode===3?'date':'time';
+   window.AppDT.appendRow(target,$('first').value,$('last').value);
+   $('error').style.display='none';
+   const message=$('transfer-notice');if(message){message.textContent='Добавлена строка в «Калькулятор времени и чисел» → «'+(target==='date'?'Дата':'Дата и время')+'».';message.hidden=false;}
+   document.dispatchEvent(new Event('app-data-modified'));
+ }catch(err){$('error').textContent=err.message;$('error').style.display='block'}
+});
+document.querySelectorAll('[data-date-shift]').forEach(button=>{
+ button.addEventListener('click',()=>shiftCalendarDate(button.dataset.dateInput,Number(button.dataset.dateShift)));
+});
+$('calculator').addEventListener('submit',ev=>{ev.preventDefault();try{showResults(compute());$('error').style.display='none'}catch(err){$('error').textContent=err.message;$('error').style.display='block'}});
+modeButtons.forEach(b=>b.addEventListener('click',()=>setMode(Number(b.dataset.mode))));
+['filter-source','filter-target','filter-search'].forEach(id=>$(id).addEventListener(id==='filter-search'?'input':'change',updateFilter));
+setMode(1);
+})();
+</script>
+
+<script>
+(() => {
+  'use strict';
+  const globalViews = [
+    ['dates', document.getElementById('global-date-tab'), document.getElementById('dates-workspace')],
+    ['gann', document.getElementById('global-gann-tab'), document.getElementById('gann-workspace')],
+    ['wheel', document.getElementById('global-wheel-tab'), document.getElementById('wheel-workspace')],
+    ['gem', document.getElementById('global-gem-tab'), document.getElementById('gem-workspace')],
+    ['dt', document.getElementById('global-dt-tab'), document.getElementById('dt-workspace')]
+  ];
+  // У каждой из пяти глобальных страниц собственная вертикальная позиция.
+  // Сохраняем её ДО скрытия панели: иначе браузер автоматически сдвигает
+  // документ вверх, если новая вкладка короче предыдущей.
+  const positions = Object.fromEntries(globalViews.map(([key]) => [key, 0]));
+  let activeWorkspace = 'dates';
+  let scrollRestoreId = 0;
+  const readScroll = () => Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+  function restoreScroll(workspace) {
+    const restoreId = ++scrollRestoreId;
+    const top = positions[workspace] || 0;
+    // Первая прокрутка сразу, вторая — после обновления геометрии вкладки.
+    window.scrollTo({top, behavior:'instant'});
+    requestAnimationFrame(() => {
+      if (restoreId === scrollRestoreId && activeWorkspace === workspace) {
+        window.scrollTo({top, behavior:'instant'});
+      }
+    });
+  }
+  function switchWorkspace(workspace, focus = false) {
+    if (!globalViews.some(([key]) => key === workspace)) return;
+    if (activeWorkspace !== workspace) positions[activeWorkspace] = readScroll();
+    activeWorkspace = workspace;
+    let active = null;
+    for (const [key, tab, view] of globalViews) {
+      const selected = key === workspace;
+      view.hidden = !selected;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected) active = tab;
+    }
+    if (focus && active) active.focus({preventScroll:true});
+    restoreScroll(workspace);
+  }
+  window.AppGlobal={
+    select:switchWorkspace,
+    active:()=>activeWorkspace,
+    // Позиции включены и в существующее автосохранение/JSON-копию.
+    snapshot(){positions[activeWorkspace]=readScroll();return {...positions};},
+    restorePositions(saved){
+      if(!saved || typeof saved!=='object')return;
+      for(const [key] of globalViews){
+        const v=Number(saved[key]);
+        if(saved[key]!==null && saved[key]!==undefined && Number.isFinite(v) && v>=0)positions[key]=v;
+      }
+    }
+  };
+  for (const [key, tab] of globalViews) {
+    tab.addEventListener('click', () => switchWorkspace(key));
+    tab.addEventListener('keydown', (event) => {
+      if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) {
+        event.preventDefault();
+        const ix = globalViews.findIndex(row => row[0] === key);
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? globalViews.length - 1
+          : (ix + (event.key === 'ArrowRight' ? 1 : -1) + globalViews.length) % globalViews.length;
+        switchWorkspace(globalViews[next][0], true);
+      }
+    });
+  }
+
+  const get = id => document.getElementById(id);
+  const localeNumber = (value, digits = 2) => Number(value).toLocaleString('ru-RU', {
+    minimumFractionDigits: digits, maximumFractionDigits: digits
+  });
+  const signed = (value, suffix = '') => `${value > 0 ? '+' : value < 0 ? '−' : ''}${localeNumber(Math.abs(value))}${suffix}`;
+
+  function validateInput(raw, input) {
+    const value = Number(String(raw).replace(',', '.'));
+    const valid = String(raw).trim() !== '' && Number.isFinite(value) &&
+      value > 1 && value <= 1000000000000 &&
+      Math.abs(value * 100 - Math.round(value * 100)) <= 0.00001;
+    input.setAttribute('aria-invalid', String(!valid));
+    return valid ? Math.round(value * 100) / 100 : null;
+  }
+
+  function gannPosition(value) {
+    // Нечётные квадраты строго ниже и выше числа; если число само равно
+    // нечётному квадрату, берём соседние нечётные квадраты за границей.
+    const squareRoot = Math.sqrt(value);
+    let lowerOdd = Math.floor(squareRoot);
+    if (lowerOdd % 2 === 0) lowerOdd -= 1;
+    // Если значение равно нечётному квадрату, это начало нового круга.
+    // Так ни одна ячейка не считается с коэффициентом соседнего круга.
+    while (lowerOdd > 0 && lowerOdd ** 2 > value) lowerOdd -= 2;
+    if (lowerOdd < 1) throw new Error('Число должно быть больше 1.');
+    const upperOdd = lowerOdd + 2;
+
+    // Ближайший чётный квадрат, а не обязательно квадрат среднего корня
+    // в случае, когда само число — нечётный квадрат.
+    const evenFloor = 2 * Math.floor(squareRoot / 2);
+    const evenCeil = 2 * Math.ceil(squareRoot / 2);
+    const evenRoot = [evenFloor, evenCeil].sort((a,b) =>
+      Math.abs(value - a*a) - Math.abs(value - b*b) || a - b
+    )[0];
+    const lowerSquare = lowerOdd ** 2;
+    const upperSquare = upperOdd ** 2;
+    const evenSquare = evenRoot ** 2;
+    const cells = upperSquare - lowerSquare;
+    const oneCell = 360 / cells;
+    const degreeFromLower = (value - lowerSquare) * oneCell;
+    // Все нечётные квадраты соответствуют направлению 315°.
+    // Остаток даёт положение относительно нулевого направления на круге.
+    const rawAngle = 315 + degreeFromLower;
+    let degreesFromZero = ((rawAngle % 360) + 360) % 360;
+    if (degreesFromZero < 1e-9 || 360 - degreesFromZero < 1e-9) degreesFromZero = 0;
+    const degreesToZero = 360 - degreesFromZero;
+    const cellsFromZero = degreesFromZero / oneCell;
+    const cellsToZero = degreesToZero / oneCell;
+    return {
+      value, squareRoot, lowerOdd, upperOdd, evenRoot,
+      lowerSquare, upperSquare, evenSquare, cells, oneCell, degreeFromLower,
+      degreesFromZero, degreesToZero, cellsFromZero, cellsToZero,
+      squares: [
+        { label: 'Нечётный квадрат min', root: lowerOdd, square: lowerSquare },
+        { label: 'Чётный квадрат', root: evenRoot, square: evenSquare },
+        { label: 'Нечётный квадрат max', root: upperOdd, square: upperSquare }
+      ]
+    };
+  }
+
+  function renderCard(number, result) {
+    if (!result) {
+      get(`gann-${number}-caption`).textContent = '—';
+      for (const field of ['root','cells','step','ring-info']) get(`gann-${field}-${number}`).textContent = '—';
+      for (const field of ['cells-from','cells-to','degrees-from','degrees-to']) get(`gann-zero-${field}-${number}`).textContent = '—';
+      get(`gann-rows-${number}`).innerHTML = '<tr><td class="gann-unavailable" colspan="5">Введите корректное число для расчёта.</td></tr>';
+      return;
+    }
+    get(`gann-${number}-caption`).textContent = localeNumber(result.value);
+    get(`gann-root-${number}`).textContent = localeNumber(result.squareRoot, 4);
+    get(`gann-cells-${number}`).textContent = localeNumber(result.cells, 0);
+    get(`gann-step-${number}`).textContent = `${localeNumber(result.oneCell, 2)}°`;
+    get(`gann-zero-cells-from-${number}`).textContent = localeNumber(result.cellsFromZero);
+    get(`gann-zero-cells-to-${number}`).textContent = localeNumber(result.cellsToZero);
+    get(`gann-zero-degrees-from-${number}`).textContent = `${localeNumber(result.degreesFromZero)}°`;
+    get(`gann-zero-degrees-to-${number}`).textContent = `${localeNumber(result.degreesToZero)}°`;
+    get(`gann-rows-${number}`).innerHTML = result.squares.map(s => {
+      const diff = Math.abs(result.value - s.square);
+      const angle = diff * result.oneCell;
+      return `<tr><td>${s.label}</td><td>${localeNumber(s.root,0)}</td><td>${localeNumber(s.square,0)}</td><td>${localeNumber(diff)}</td><td>${localeNumber(angle)}°</td></tr>`;
+    }).join('');
+    get(`gann-ring-info-${number}`).textContent =
+      `${localeNumber(result.upperSquare,0)} − ${localeNumber(result.lowerSquare,0)} = ${localeNumber(result.cells,0)} ячеек; 360° ÷ ${localeNumber(result.cells,0)} = ${localeNumber(result.oneCell,2)}° на ячейку (без округления в вычислениях). Положение: ${localeNumber(result.degreeFromLower)}° от меньшего нечётного квадрата.`;
+  }
+
+  // Полная угловая разница: на каждом кольце собственный шаг в градусах.
+  // Пересечение нескольких колец учитывается как сумма части первого,
+  // полных промежуточных оборотов и части последнего кольца.
+  function calculateGannDelta(first, second) {
+    if (first.value === second.value) return { full: 0, normalized: 0, sameRing: true,
+      explanation: 'Числа совпадают: угловая разница равна 0°.' };
+    const [low, high] = first.value < second.value ? [first, second] : [second, first];
+    const lowRing = (low.lowerOdd - 1) / 2;
+    const highRing = (high.lowerOdd - 1) / 2;
+    const sameRing = lowRing === highRing;
+    let full, explanation;
+    if (sameRing) {
+      full = (high.value - low.value) * low.oneCell;
+      explanation = `Один круг ${localeNumber(low.lowerSquare,0)}–${localeNumber(low.upperSquare,0)}: ` +
+        `(${localeNumber(high.value)} − ${localeNumber(low.value)}) × ${localeNumber(low.oneCell,2)}° = ${localeNumber(full)}°.`;
+    } else {
+      const firstPart = (low.upperSquare - low.value) * low.oneCell;
+      const lastPart = (high.value - high.lowerSquare) * high.oneCell;
+      const wholeRings = Math.max(0, highRing - lowRing - 1);
+      full = firstPart + 360 * wholeRings + lastPart;
+      let terms = [
+        `(${localeNumber(low.upperSquare,0)} − ${localeNumber(low.value)}) × ${localeNumber(low.oneCell,2)}°`
+      ];
+      if (wholeRings > 0) terms.push(`${localeNumber(wholeRings,0)} × 360°`);
+      terms.push(`(${localeNumber(high.value)} − ${localeNumber(high.lowerSquare,0)}) × ${localeNumber(high.oneCell,2)}°`);
+      explanation = `Разные круги: ${terms.join(' + ')} = ${localeNumber(full)}°.`;
+    }
+    // Нормализуем полную дельту по модулю 360° в интервал [0°, 360°).
+    // Кратные 360° (360, 720, 1080, ...) дают ровно 0°, даже при
+    // незначительной погрешности операций с дробными числами.
+    const nearestTurns = Math.round(full / 360);
+    const wholeTurns = full > 0 && Math.abs(full - nearestTurns * 360) < 1e-8;
+    const turns = wholeTurns ? nearestTurns : Math.floor(full / 360);
+    let normalized = wholeTurns ? 0 : full - turns * 360;
+    if (Math.abs(normalized) < 1e-8 || Math.abs(normalized - 360) < 1e-8) normalized = 0;
+    explanation += turns > 0
+      ? ` После вычитания ${localeNumber(turns,0)} × 360° → ${localeNumber(normalized)}°.`
+      : ' Полных оборотов вычитать не требуется.';
+    return { full, normalized, sameRing, explanation };
+  }
+
+  function recalculateGann() {
+    const first = get('gann-first');
+    const second = get('gann-second');
+    const firstVal = validateInput(first.value, first);
+    const secondVal = validateInput(second.value, second);
+    const firstResult = firstVal === null ? null : gannPosition(firstVal);
+    const secondResult = secondVal === null ? null : gannPosition(secondVal);
+    renderCard(1, firstResult);
+    renderCard(2, secondResult);
+    if (firstResult && secondResult) {
+      const difference = Math.round((secondVal - firstVal) * 100) / 100;
+      const percentage = 100 * (secondVal / firstVal - 1);
+      const diffNode = get('gann-difference');
+      const percentNode = get('gann-percent');
+      diffNode.textContent = signed(difference);
+      percentNode.textContent = signed(percentage, ' %');
+      for (const node of [diffNode, percentNode]) {
+        node.classList.toggle('positive', (node === diffNode ? difference : percentage) > 0);
+        node.classList.toggle('negative', (node === diffNode ? difference : percentage) < 0);
+      }
+      const delta = calculateGannDelta(firstResult, secondResult);
+      get('gann-delta-full').textContent = `${localeNumber(delta.full)}°`;
+      get('gann-delta-normalized').textContent = `${localeNumber(delta.normalized)}°`;
+      get('gann-delta-explanation').textContent = delta.explanation;
+      get('gann-validation').textContent = '';
+    } else {
+      get('gann-difference').textContent = '—';
+      get('gann-percent').textContent = '—';
+      get('gann-delta-full').textContent = '—';
+      get('gann-delta-normalized').textContent = '—';
+      get('gann-delta-explanation').textContent = 'Для расчёта дельты нужны два корректных числа.';
+      get('gann-validation').textContent = 'Введите два числа больше 1 с точностью не более двух знаков после запятой.';
+    }
+  }
+  get('gann-form').addEventListener('submit', e => {e.preventDefault(); recalculateGann();});
+  for (const id of ['gann-first','gann-second']) {
+    get(id).addEventListener('input', recalculateGann);
+    get(id).addEventListener('change', recalculateGann);
+  }
+  // Работаем с целыми сотыми, чтобы шаг 0,01 не накапливал погрешность.
+  function stepGannInput(id, delta) {
+    const input = get(id);
+    const matched = String(input.value).trim().match(/^(\d+)(?:\.(\d{1,2}))?$/);
+    if (!matched) { input.focus(); recalculateGann(); return; }
+    const value = BigInt(matched[1])*100n + BigInt((matched[2] || '').padEnd(2,'0')) + BigInt(delta);
+    // Сохраняем прежние ограничения полей: 1,01 ≤ число ≤ 1 000 000 000 000.
+    if (value < 101n || value > 100000000000000n) return;
+    input.value = String(value / 100n) + '.' + String(value % 100n).padStart(2,'0');
+    recalculateGann();
+  }
+  for (const field of ['first','second']) {
+    for (const [arrow,delta] of [['plus',1],['minus',-1]]) {
+      get(`gann-${field}-${arrow}`).addEventListener('click',()=>stepGannInput(`gann-${field}`,delta));
+    }
+  }
+  recalculateGann();
+})();
+</script>
+
+<script>
+// Третья страница: Колесо чисел. Точные дробные вычисления на BigInt.
+(() => {
+  'use strict';
+  const get = id => document.getElementById(id);
+  const base = get('wheel-base'), target = get('wheel-target'), tolerance = get('wheel-tolerance');
+  const tbody = get('wheel-body'), status = get('wheel-status');
+  const swatches = [...document.querySelectorAll('[data-wheel-color]')];
+  const fmtInt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+  let wheelValues = [], wheelCells = [], searchActive = false;
+  let lastBase = null;
+
+  // Вводим строго две десятичные цифры, но не теряем точность больших степеней 360.
+  function parseCents(raw) {
+    const cleaned = String(raw).trim().replace(',', '.').replace(/\s/g,'');
+    const m = cleaned.match(/^(\d+)(?:\.(\d{1,2}))?$/);
+    if (!m || cleaned.length > 19) return null;
+    return BigInt(m[1]) * 100n + BigInt((m[2] || '').padEnd(2, '0'));
+  }
+  function displayCents(n) {
+    return fmtInt(n / 100n) + ',' + String(n % 100n).padStart(2,'0');
+  }
+  function displayValue(n, d) {
+    // Шесть цифр — только отображение, точное число n/d остается без округления.
+    const scale = 1000000n;
+    const q = (n * scale * 2n + d) / (2n * d);
+    const integral = fmtInt(q / scale);
+    let fractional = String(q % scale).padStart(6,'0');
+    while (fractional.length > 2 && fractional.endsWith('0')) fractional = fractional.slice(0,-1);
+    return integral + ',' + fractional;
+  }
+  function normalize(raw) {
+    let denominator = 100n;
+    while (raw > 100n * denominator) denominator *= 10n;
+    return {n:raw, d:denominator};
+  }
+  function showStatus(message, isError = false) {
+    status.textContent = message;
+    status.classList.toggle('error',isError);
+  }
+  function recalculate() {
+    const cents = parseCents(base.value);
+    base.setAttribute('aria-invalid',String(cents === null));
+    if (cents === null) {
+      showStatus('Введите неотрицательное число с точностью не более двух знаков после запятой.',true);
+      return;
+    }
+    if (cents === lastBase && wheelCells.length) return;
+    lastBase = cents;
+    const factors = [];
+    let factor = 1n;
+    for (let circle = 0; circle < 9; circle++) {factors.push(factor);factor *= 360n;}
+    const html = [];
+    const values = [];
+    for (let i = 1; i <= 360; i++) {
+      html.push('<tr><td>' + i + '</td>');
+      for (let col = 0; col < 9; col++) {
+        const fraction = normalize(cents * BigInt(i) * factors[col]);
+        const ix = values.length;
+        values.push(fraction);
+        html.push('<td class="wheel-value" data-wheel-idx="' + ix + '">' + displayValue(fraction.n,fraction.d) + '</td>');
+      }
+      html.push('</tr>');
+    }
+    tbody.innerHTML = html.join('');
+    wheelValues = values;
+    wheelCells = [...tbody.querySelectorAll('[data-wheel-idx]')];
+    get('wheel-total').textContent = '3 240 значений';
+    if (searchActive) findMatches();
+    else showStatus('Таблица рассчитана для числа ' + displayCents(cents) + '. Для поиска задайте число и погрешность.');
+  }
+  // Каноническая значащая часть каждого положительного числа [1, 10).
+  // Нужна только для поиска; значения и отображение таблицы не меняем.
+  function significand(n,d) {
+    while (n < d) n *= 10n;
+    while (n >= 10n*d) d *= 10n;
+    return {n,d};
+  }
+  function equivalentMatch(n,d,targetCents,pct) {
+    // Ноль не эквивалентен ненулевым числам при масштабировании на 10^k.
+    if (targetCents === 0n) return n === 0n;
+    if (n === 0n) return pct >= 100n;
+    // При ±100 % или больше нижняя граница — ноль: любое положительное
+    // число можно масштабировать вниз до попадания в допустимый диапазон.
+    if (pct >= 100n) return true;
+
+    const v = significand(n,d);
+    const t = significand(targetCents,100n);
+    const lower = t.n * (100n-pct), upper = t.n * (100n+pct);
+    // Проверяем v × 10^k против диапазона t × (1 ± pct/100).
+    // Для 0..99 % достаточно степеней -3..+3 после приведения к [1,10).
+    // Соседние степени учитывают совпадения у границы 9,99 ↔ 10,00.
+    let scaledN = v.n, scaledD = v.d * 1000n; // k = -3
+    for (let k = -3; k <= 3; k++) {
+      const lhs = scaledN * t.d * 100n;
+      if (lhs >= lower * scaledD && lhs <= upper * scaledD) return true;
+      scaledN *= 10n;
+    }
+    return false;
+  }
+  function findMatches() {
+    const cents = parseCents(base.value);
+    if (cents === null) {showStatus('Сначала введите корректное заданное число.', true);return;}
+    if (cents !== lastBase) recalculate();
+    const tgt = parseCents(target.value);
+    const p = String(tolerance.value).trim();
+    const validPct = /^\d+$/.test(p) && p.length <= 10;
+    target.setAttribute('aria-invalid',String(tgt === null));
+    tolerance.setAttribute('aria-invalid',String(!validPct));
+    if (tgt === null || !validPct || lastBase === null) {
+      showStatus('Для поиска укажите искомое неотрицательное число (до двух знаков) и целую неотрицательную погрешность в процентах.',true);
+      return;
+    }
+    const pct = BigInt(p);
+    let found = 0;
+    // При поиске считаем числа эквивалентными после умножения или деления
+    // на любую целую степень 10: 0,123 = 1,23 = 12,3 и т. д.
+    // Все сравнения целочисленные BigInt, без промежуточного округления.
+    for (let i = 0; i < wheelCells.length; i++) {
+      const {n,d} = wheelValues[i];
+      const match = equivalentMatch(n,d,tgt,pct);
+      wheelCells[i].classList.toggle('wheel-match', match);
+      if (match) found++;
+    }
+    searchActive = true;
+    showStatus('Найдено: ' + found + ' из 3 240 ячеек. Искомое число: ' + displayCents(tgt)
+      + '; погрешность ±' + pct.toString() + ' %; учитываются степени 10 (например, 0,123 = 1,23 = 12,3).');
+  }
+  function resetMatches() {
+    searchActive = false;
+    for (const cell of wheelCells) cell.classList.remove('wheel-match');
+    showStatus('Подсветка сброшена. Таблица остаётся без изменений.');
+  }
+  get('wheel-form').addEventListener('submit',e=>{e.preventDefault();findMatches();});
+  get('wheel-reset').addEventListener('click',resetMatches);
+  base.addEventListener('input',recalculate);
+  base.addEventListener('change',()=>{
+    const v = parseCents(base.value);
+    if (v !== null) {base.value = displayCents(v).replace(/\u00a0/g,'');recalculate();}
+  });
+  for (const [id, delta] of [['wheel-plus',1n],['wheel-minus',-1n]]) {
+    get(id).addEventListener('click',()=>{
+      const v = parseCents(base.value);
+      if (v === null) {showStatus('Сначала введите корректное заданное число.',true);return;}
+      const stepped = v+delta;
+      if (stepped < 0n) return;
+      base.value = displayCents(stepped).replace(/\u00a0/g,'');
+      recalculate();
+    });
+  }
+  // Стрелки меняют исходные значения без потери десятичной точности.
+  function stepWheelTarget(delta) {
+    const cents = parseCents(target.value);
+    if (cents === null) { target.focus(); showStatus('Введите корректное искомое число.',true); return; }
+    const stepped = cents + delta;
+    if (stepped < 0n) return;
+    target.value = displayCents(stepped).replace(/\u00a0/g,'');
+    if (searchActive) findMatches();
+  }
+  function stepWheelTolerance(delta) {
+    const raw = String(tolerance.value).trim();
+    if (!/^\d{1,10}$/.test(raw)) { tolerance.focus(); showStatus('Введите целую неотрицательную погрешность.',true); return; }
+    const stepped = BigInt(raw) + delta;
+    if (stepped < 0n || stepped > 9999999999n) return;
+    tolerance.value = String(stepped);
+    if (searchActive) findMatches();
+  }
+  for (const [arrow,delta] of [['plus',1n],['minus',-1n]]) {
+    get(`wheel-target-${arrow}`).addEventListener('click',()=>stepWheelTarget(delta));
+    get(`wheel-tolerance-${arrow}`).addEventListener('click',()=>stepWheelTolerance(delta));
+  }
+  function chooseColor(color) {
+    get('wheel-workspace').style.setProperty('--wheel-match-color',color);
+    get('wheel-color').value = color;
+    swatches.forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.wheelColor.toLowerCase() === color.toLowerCase())));
+  }
+  for (const btn of swatches) btn.addEventListener('click',()=>chooseColor(btn.dataset.wheelColor));
+  get('wheel-color').addEventListener('input',e=>chooseColor(e.target.value));
+  recalculate();
+})();
+</script>
+
+
+<script>
+(() => {
+  'use strict';
+  // Числовые ряды назначены строго в порядке, заданном пользователем.
+  const alphabetEnglish = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const alphabetRussian = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'.split('');
+  const valuesEnglish = [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800];
+  const valuesOldRussian = [1,null,2,3,4,5,null,null,7,8,null,20,30,40,50,70,80,100,200,300,400,500,600,900,90];
+  const valuesRussian = [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,2000,3000,4000,5000,6000];
+  if (alphabetEnglish.length !== valuesEnglish.length || alphabetRussian.length !== valuesRussian.length || valuesOldRussian.length !== 25) throw new Error('Некорректный числовой ряд гематрии');
+  const systems = [
+    {id:'en',letters:alphabetEnglish,values:valuesEnglish},
+    {id:'old',letters:alphabetRussian,values:valuesOldRussian},
+    {id:'ru',letters:alphabetRussian,values:valuesRussian}
+  ];
+  for (const system of systems) system.mapping = new Map(system.letters.map((letter,i)=>[letter,system.values[i] === undefined?null:system.values[i]]));
+  const $=id=>document.getElementById(id);
+  const tableBody=$('gem-body');
+  const rows=[];
+  for(let i=0;i<alphabetRussian.length;i++) {
+    const tr=document.createElement('tr');
+    const idx=document.createElement('td');idx.textContent=String(i+1);tr.appendChild(idx);
+    const groups=[];
+    for(const system of systems){
+      const letter=system.letters[i];
+      const value=system.values[i];
+      const cellLetter=document.createElement('td');
+      cellLetter.className='gem-letter';
+      cellLetter.textContent=letter || '—';
+      if(!letter)cellLetter.classList.add('gem-missing');
+      const cellValue=document.createElement('td');
+      cellValue.className='gem-value';
+      cellValue.textContent=value===null||value===undefined?'—':String(value);
+      if(value===null||value===undefined)cellValue.classList.add('gem-missing');
+      tr.append(cellLetter,cellValue);
+      groups.push({letter,letterCell:cellLetter,valueCell:cellValue});
+    }
+    tableBody.appendChild(tr);
+    rows.push(groups);
+  }
+  function sumDigits(value){return [...String(value)].reduce((sum,c)=>sum+Number(c),0)}
+  function reduceNumerology(total){
+    if(total<=0)return null;
+    let n=total;
+    while(n>9)n=sumDigits(n);
+    return n;
+  }
+  function update(){
+    const text=String($('gem-text').value).toLocaleUpperCase('ru-RU');
+    const chars=Array.from(text);
+    for(let sysIndex=0;sysIndex<systems.length;sysIndex++){
+      const system=systems[sysIndex];
+      let total=0,recognized=0,unknown=0;
+      const found=new Set();
+      for(const letter of chars){
+        if(!system.mapping.has(letter))continue;
+        const value=system.mapping.get(letter);
+        if(value===null){unknown++;continue;}
+        total+=value;recognized++;found.add(letter);
+      }
+      const reduced=reduceNumerology(total);
+      $('gem-sum-'+system.id).textContent=recognized?String(total):'0';
+      $('gem-reduced-'+system.id).textContent=reduced===null?'—':String(reduced);
+      const note= $('gem-description-'+system.id);
+      if(recognized===0 && unknown===0)note.textContent='Нет учитываемых букв этого алфавита';
+      else if(unknown)note.textContent='Учтено букв: '+recognized+'; без заданного значения: '+unknown;
+      else note.textContent='Учтено букв: '+recognized+' · сумма → нумерологическое число';
+      for(let i=0;i<rows.length;i++){
+        const {letter,letterCell,valueCell}=rows[i][sysIndex];
+        const active=Boolean(letter&&found.has(letter));
+        letterCell.classList.toggle('gem-highlight',active);
+        valueCell.classList.toggle('gem-highlight',active);
+      }
+    }
+  }
+  $('gem-text').addEventListener('input',update);
+  update();
+})();
+</script>
+
+<script>
+// Высота глобальных вкладок зависит от ширины экрана и переносов текста.
+// Используем фактическую высоту, чтобы навигации не перекрывали друг друга.
+(() => {
+  const globalTabs = document.querySelector('.global-tabs-sticky');
+  if (!globalTabs) return;
+  const updateScenarioOffset = () => {
+    const height = globalTabs.getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--global-tabs-sticky-height', `${Math.ceil(height)}px`);
+  };
+  updateScenarioOffset();
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(updateScenarioOffset).observe(globalTabs);
+  }
+  window.addEventListener('resize', updateScenarioOffset, {passive:true});
+})();
+</script>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const abs = n => n < 0n ? -n : n;
+  function gcd(a,b){a=abs(a);b=abs(b);while(b){const t=b;b=a%b;a=t;}return a||1n;}
+  function F(n,d=1n){n=BigInt(n);d=BigInt(d);if(d===0n)throw Error('Деление на ноль');if(d<0n){n=-n;d=-d;}const g=gcd(n,d);return {n:n/g,d:d/g};}
+  const add=(a,b)=>F(a.n*b.d+b.n*a.d,a.d*b.d);
+  const sub=(a,b)=>F(a.n*b.d-b.n*a.d,a.d*b.d);
+  const mul=(a,b)=>F(a.n*b.n,a.d*b.d);
+  const div=(a,b)=>F(a.n*b.d,a.d*b.n);
+  function cmp(a,b){const n=a.n*b.d-b.n*a.d;return n<0n?-1:n>0n?1:0;}
+  function scale10(x,k){return k<0?div(x,F(10n**BigInt(-k))):mul(x,F(10n**BigInt(k)));}
+  function fracDegrees(x){const remainder=x.n%x.d;return mul(F(remainder<0n?remainder+x.d:remainder,x.d),F(360n));}
+  function formatNumber(x,decimals=2){
+    const p=10n**BigInt(decimals), scaled=(2n*abs(x.n)*p+x.d)/(2n*x.d);
+    const leading=(scaled/p).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+    return (x.n<0n?'-':'')+leading+','+String(scaled%p).padStart(decimals,'0');
+  }
+  function parseDecimal(s,decimals=2){
+    const m=String(s).trim().replace(/\s/g,'').match(/^([+-]?)(\d{1,17})(?:[.,](\d{1,3}))?$/);
+    if(!m||(m[3]||'').length>decimals)return null;
+    const digits=m[3]||'', sign=m[1]==='-'?-1n:1n;
+    const factor=10n**BigInt(decimals);
+    return F(sign*(BigInt(m[2])*factor+BigInt(digits.padEnd(decimals,'0'))),factor);
+  }
+  function parseMoment(s,withTime){
+    const raw=String(s).trim();
+    if(!raw)return null;
+    let match;
+    if(withTime){
+      match=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})[ T](\d{2}):(\d{2})$/);
+      if(!match){const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);if(iso)match=[iso[0],iso[3],iso[2],iso[1],iso[4],iso[5]];}
+    }else{
+      match=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if(!match){const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(iso)match=[iso[0],iso[3],iso[2],iso[1]];}
+    }
+    if(match){
+      const day=Number(match[1]),month=Number(match[2]),year=Number(match[3]);
+      const hour=withTime?Number(match[4]):0,minute=withTime?Number(match[5]):0;
+      if(year<100||year>9999||month<1||month>12||day<1||day>31||hour>23||minute>59)throw Error('Некорректная дата или время');
+      const ms=Date.UTC(year,month-1,day,hour,minute,0,0);
+      const d=new Date(ms);
+      if(d.getUTCFullYear()!==year||d.getUTCMonth()+1!==month||d.getUTCDate()!==day||d.getUTCHours()!==hour||d.getUTCMinutes()!==minute)throw Error('Некорректная дата или время');
+      return {kind:'calendar',days:F(BigInt(ms),86400000n)};
+    }
+    const num=parseDecimal(raw);
+    if(num!==null)return {kind:'numeric',days:num};
+    throw Error(withTime?'Введите дату ДД.ММ.ГГГГ ЧЧ:ММ или число с двумя знаками':'Введите дату ДД.ММ.ГГГГ или число с двумя знаками');
+  }
+  const unitDays={
+    'seconds':F(1n,86400n),'minutes':F(1n,1440n),'hours':F(1n,24n),
+    'halfday':F(1n,2n),'days':F(1n),'weeks':F(7n),
+    'months':F(364n,12n),'years':F(364n)
+  };
+  const dateColumns=['hours','days','weeks','months','years'];
+  const timeColumns=['seconds','minutes','hours','halfday','days','weeks','months','years'];
+  const dateDegreeColumns=['weeks','months','years'];
+  const timeDegreeColumns=['minutes','hours','halfday','days','weeks','months'];
+  function calculatePair(first,second,withTime){
+    const a=parseMoment(first,withTime),b=parseMoment(second,withTime);
+    if(!a||!b)return null;
+    if(a.kind!==b.kind)throw Error('Сравнивайте даты с датами или числа с числами');
+    const duration=sub(b.days,a.days);
+    if(cmp(duration,F(0n))<0)throw Error('Второе значение не может быть меньше первого');
+    const basic=(withTime?timeColumns:dateColumns).map(key=>div(duration,unitDays[key]));
+    const degrees=(withTime?timeDegreeColumns:dateDegreeColumns).map(key=>fracDegrees(div(duration,unitDays[key])));
+    return [...basic,...degrees];
+  }
+  // «Число времени» использует объединение всех эквивалентов и градусных колонок.
+  // В том числе «гр. года» из таблицы «Дата».
+  const numberDegreeColumns=['minutes','hours','halfday','days','weeks','months','years'];
+  const unitLabels={
+    seconds:'Секунда',minutes:'Минута',hours:'Час',halfday:'12 часов',
+    days:'День',weeks:'Неделя',months:'Месяц',years:'Год',
+    degree_minutes:'гр. минуты',degree_hours:'гр. часа',
+    degree_halfday:'гр. 12 часов',degree_days:'гр. дня',degree_weeks:'гр. недели',
+    degree_months:'гр. месяца',degree_years:'гр. года'
+  };
+  // 360 градусов соответствуют одному интервалу выбранной единицы времени.
+  // Входной угол переводится в абсолютную продолжительность: угол / 360 × единица.
+  const inputUnitDays={...unitDays};
+  for(const unit of timeColumns)if(unit!=='seconds')inputUnitDays[`degree_${unit}`]=div(unitDays[unit],F(360n));
+  function calculateNumber(number,unit){
+    const raw=String(number).trim();
+    if(!raw)return null;
+    const amount=parseDecimal(raw,3);
+    if(amount===null)throw Error('Введите число с точностью до трёх знаков после запятой');
+    if(cmp(amount,F(0n))<0)throw Error('Количество времени не может быть отрицательным');
+    if(!Object.hasOwn(inputUnitDays,unit))throw Error('Неизвестная единица времени');
+    const duration=mul(amount,inputUnitDays[unit]);
+    const basic=timeColumns.map(key=>div(duration,unitDays[key]));
+    const degrees=numberDegreeColumns.map(key=>fracDegrees(div(duration,unitDays[key])));
+    return [...basic,...degrees];
+  }
+  const modes={
+    date:{withTime:false,rows:[{id:1,first:'',second:'',values:null,error:''}],chosen:1,active:false,color:'#d8f5df',target:null,allowance:null},
+    time:{withTime:true,rows:[{id:2,first:'',second:'',values:null,error:''}],chosen:2,active:false,color:'#d8f5df',target:null,allowance:null},
+    number:{withTime:false,rows:[{id:3,number:'',unit:'days',values:null,error:''}],chosen:3,active:false,color:'#d8f5df',target:null,allowance:null}
+  };
+  let nextRowId=4;
+  function state(mode){return modes[mode];}
+  const tbody=mode=>$(`dt-${mode}-body`);
+  const cellCount=mode=>mode==='date'?8:mode==='time'?14:15;
+  function status(mode,msg,isError=false){const el=$(`dt-${mode}-status`);el.textContent=msg;el.classList.toggle('error',isError);}
+  function readRow(mode,row){
+    try{row.values=mode==='number'?calculateNumber(row.number,row.unit):calculatePair(row.first,row.second,state(mode).withTime);row.error='';}
+    catch(error){row.values=null;row.error=error.message;}
+  }
+  function renderRowCells(mode,row){
+    const tr=tbody(mode).querySelector(`tr[data-row-id="${row.id}"]`);
+    if(!tr)return;
+    const cells=tr.querySelectorAll('td.dt-computed');
+    cells.forEach((el,i)=>{
+      el.textContent=row.values?formatNumber(row.values[i],i<(mode==='date'?5:8)?4:2):'—';
+      el.classList.remove('dt-hit');
+      el.title=row.error||'';
+    });
+    tr.title=row.error;
+    tr.classList.toggle('dt-error',Boolean(row.error));
+  }
+  function escapeAttr(text){return String(text).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+  function renderTable(mode){
+    const s=state(mode);
+    if(s.rows.length===0){s.rows=[newEmptyRow(mode)];s.chosen=s.rows[0].id;}
+    if(!s.rows.some(r=>r.id===s.chosen))s.chosen=s.rows[0].id;
+    let html='';
+    s.rows.forEach((r,index)=>{
+      const selected=r.id===s.chosen;
+      html+=`<tr data-row-id="${r.id}" class="${selected?'dt-selected':''}">`;
+      if(mode==='number'){
+        html+=`<td class="dt-number-input-cell"><div class="dt-row-cell"><input type="radio" class="dt-row-radio" name="dt-number-selected" value="${r.id}" ${selected?'checked':''} aria-label="Выбрать строку ${index+1}"><span class="dt-row-index">${index+1}</span>`;
+        html+=`<input type="text" class="dt-date-input" data-dt-field="number" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="1,250" value="${escapeAttr(r.number===''?'':(parseDecimal(r.number,3)!==null?formatNumber(parseDecimal(r.number,3),3):r.number))}" aria-label="Число времени, строка ${index+1}"></div></td>`;
+        html+=`<td class="dt-unit-cell"><select class="dt-unit-select" data-dt-field="unit" aria-label="Единица времени, строка ${index+1}">`;
+        for(const [key,label] of Object.entries(unitLabels))html+=`<option value="${key}" ${key===r.unit?'selected':''}>${label}</option>`;
+        html+='</select></td>';
+      }else{
+        for(const field of ['first','second']){
+          html+=`<td class="dt-date-cell"><div class="dt-row-cell">`;
+          if(field==='first')html+=`<input type="radio" class="dt-row-radio" name="dt-${mode}-selected" value="${r.id}" ${selected?'checked':''} aria-label="Выбрать строку ${index+1}"><span class="dt-row-index">${index+1}</span>`;
+          html+=`<input type="text" class="dt-date-input" data-dt-field="${field}" inputmode="text" autocomplete="off" spellcheck="false" placeholder="${mode==='date'?'ДД.ММ.ГГГГ':'ДД.ММ.ГГГГ ЧЧ:ММ'}" value="${escapeAttr(r[field])}" aria-label="${field==='first'?'Первое':'Второе'} значение, строка ${index+1}">`;
+          html+='</div></td>';
+        }
+      }
+      for(let i=0;i<cellCount(mode);i++)html+='<td class="dt-computed">—</td>';
+      html+='</tr>';
+    });
+    tbody(mode).innerHTML=html;
+    for(const r of s.rows){readRow(mode,r);renderRowCells(mode,r);}
+    updateToolbar(mode);
+    if(s.active)applyMatches(mode);
+    else summarizeRows(mode);
+  }
+  function summarizeRows(mode){
+    const s=state(mode);
+    const done=s.rows.filter(r=>r.values).length;
+    const errors=s.rows.filter(r=>r.error).length;
+    status(mode,`Строк: ${s.rows.length}. Рассчитано: ${done}. ${errors?`Некорректных строк: ${errors}. Наведите на строку, чтобы увидеть причину.`:'Для поиска введите искомое число и погрешность.'}`,errors>0);
+  }
+  function updateToolbar(mode){
+    const s=state(mode),ix=s.rows.findIndex(r=>r.id===s.chosen);
+    const toolbar=document.querySelector(`[data-dt-toolbar="${mode}"]`);
+    toolbar.querySelector('[data-dt-action="up"]').disabled=ix<=0;
+    toolbar.querySelector('[data-dt-action="down"]').disabled=ix>=s.rows.length-1;
+    toolbar.querySelector('[data-dt-action="remove"]').disabled=s.rows.length<=1;
+    toolbar.querySelector('[data-dt-selected-note]').textContent='Выбрана строка '+(ix+1)+' из '+s.rows.length;
+  }
+  function chooseRow(mode,id){
+    const s=state(mode);if(!s.rows.some(r=>r.id===id))return;
+    s.chosen=id;
+    tbody(mode).querySelectorAll('tr').forEach(tr=>tr.classList.toggle('dt-selected',Number(tr.dataset.rowId)===id));
+    updateToolbar(mode);
+  }
+  function newEmptyRow(mode){
+    const id=nextRowId++;
+    return mode==='number'?{id,number:'',unit:'days',values:null,error:''}:{id,first:'',second:'',values:null,error:''};
+  }
+  function toolbarAction(mode,action){
+    const s=state(mode),idx=s.rows.findIndex(r=>r.id===s.chosen);
+    if(action==='add'){
+      const r=newEmptyRow(mode);
+      s.rows.splice(idx+1,0,r);s.chosen=r.id;
+    }else if(action==='remove' && s.rows.length>1){
+      s.rows.splice(idx,1);s.chosen=s.rows[Math.min(idx,s.rows.length-1)].id;
+    }else if(action==='up' && idx>0){
+      [s.rows[idx-1],s.rows[idx]]=[s.rows[idx],s.rows[idx-1]];
+    }else if(action==='down' && idx>=0 && idx<s.rows.length-1){
+      [s.rows[idx+1],s.rows[idx]]=[s.rows[idx],s.rows[idx+1]];
+    }else return;
+    renderTable(mode);
+  }
+  // Поиск через точные рациональные числа: x совпадает с целью t,
+  // если x близок к t×10^k при любом целом k в физически достаточном
+  // диапазоне: -40…40 (временные периоды и 2-знаковые исходные числа).
+  function equivalentMatch(value,target,tolerance){
+    if(cmp(value,F(0n))<0)return false;
+    if(cmp(target,F(0n))===0)return cmp(value,F(0n))===0;
+    const lowerPct=sub(F(100n),tolerance), upperPct=add(F(100n),tolerance);
+    const low=cmp(lowerPct,F(0n))<=0?F(0n):mul(target,div(lowerPct,F(100n)));
+    const high=mul(target,div(upperPct,F(100n)));
+    // Увеличить поиск на больших степенях для очень малых значений.
+    for(let k=-40;k<=40;k++){
+      if(cmp(value,scale10(low,k))>=0 && cmp(value,scale10(high,k))<=0)return true;
+    }
+    return false;
+  }
+  function parseSearch(mode,showErrors){
+    const rawTarget=$(`dt-${mode}-target`).value;
+    const rawTolerance=$(`dt-${mode}-tolerance`).value;
+    const target=parseDecimal(rawTarget),allowance=parseDecimal(rawTolerance);
+    if(target===null||cmp(target,F(0n))<0){if(showErrors)status(mode,'Укажите неотрицательное искомое число с точностью до двух знаков.',true);return null;}
+    if(allowance===null||cmp(allowance,F(0n))<0||cmp(allowance,F(10000n))>0){if(showErrors)status(mode,'Погрешность должна быть от 0 до 10 000, с точностью до двух знаков.',true);return null;}
+    return {target,allowance};
+  }
+  function applyMatches(mode){
+    const s=state(mode);
+    if(!s.active){tbody(mode).querySelectorAll('.dt-hit').forEach(e=>e.classList.remove('dt-hit'));return;}
+    let matched=0,scanned=0;
+    for(const row of s.rows){
+      const tr=tbody(mode).querySelector(`tr[data-row-id="${row.id}"]`);
+      if(!tr)continue;
+      tr.querySelectorAll('td.dt-computed').forEach((cell,i)=>{
+        const good=Boolean(row.values && equivalentMatch(row.values[i],s.target,s.allowance));
+        cell.classList.toggle('dt-hit',good);
+        if(row.values)scanned++;
+        if(good)matched++;
+      });
+    }
+    status(mode,`Найдено: ${matched} из ${scanned} рассчитанных ячеек. Погрешность ±${formatNumber(s.allowance)}%; масштаб 10^n учитывается.`);
+  }
+  function find(mode){
+    const parsed=parseSearch(mode,true);if(!parsed)return;
+    Object.assign(state(mode),parsed,{active:true});
+    applyMatches(mode);
+  }
+  function clear(mode){
+    const s=state(mode);s.active=false;s.target=null;s.allowance=null;
+    tbody(mode).querySelectorAll('td.dt-hit').forEach(td=>td.classList.remove('dt-hit'));
+    // Подсветка и выбранная палитра возвращаются к исходному виду,
+    // значения введённых дат, чисел и параметров поиска сохраняются.
+    selectColor(mode,'#d8f5df');
+    summarizeRows(mode);
+  }
+  function selectColor(mode,color){
+    const s=state(mode);s.color=color;
+    $('dt-workspace').style.setProperty('--dt-hit-color',color);
+    // Палитры полностью независимы: CSS-переменная задаётся на панели.
+    $(`dt-${mode}-panel`).style.setProperty('--dt-hit-color',color);
+    $(`dt-${mode}-color`).value=color;
+    document.querySelectorAll(`[data-dt-palette="${mode}"] button[data-dt-color]`).forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.dtColor.toLowerCase()===color.toLowerCase())));
+  }
+  let activeMode='date';
+  function setSubtab(mode){
+    activeMode=mode;
+    for(const m of ['date','time','number']){
+      $(`dt-${m}-panel`).hidden=mode!==m;
+    }
+    for(const m of ['date','time','number']){
+      const button=$(`dt-${m}-tab`);button.setAttribute('aria-selected',String(mode===m));button.tabIndex=mode===m?0:-1;
+    }
+  }
+  for(const mode of ['date','time','number']){
+    const s=state(mode);
+    const body=tbody(mode);
+    document.querySelector(`[data-dt-toolbar="${mode}"]`).addEventListener('click',event=>{
+      const btn=event.target.closest('button[data-dt-action]');if(btn)toolbarAction(mode,btn.dataset.dtAction);
+    });
+    function updateEntry(el){
+      const tr=el.closest('tr'),row=tr&&s.rows.find(r=>r.id===Number(tr.dataset.rowId));
+      if(!row)return;
+      row[el.dataset.dtField]=el.value;
+      readRow(mode,row);
+      renderRowCells(mode,row);
+      if(s.active)applyMatches(mode);else summarizeRows(mode);
+    }
+    body.addEventListener('change',event=>{
+      if(event.target.matches('input.dt-row-radio'))chooseRow(mode,Number(event.target.value));
+      else if(event.target.matches('select[data-dt-field]'))updateEntry(event.target);
+    });
+    body.addEventListener('input',event=>{
+      if(event.target.matches('input[data-dt-field]'))updateEntry(event.target);
+    });
+    if(mode==='number')body.addEventListener('focusout',event=>{
+      const input=event.target;
+      if(!input.matches('input[data-dt-field="number"]')||!input.value.trim())return;
+      const amount=parseDecimal(input.value,3);
+      if(amount===null)return;
+      input.value=formatNumber(amount,3);
+      updateEntry(input);
+    });
+    $(`dt-${mode}-tab`).addEventListener('click',()=>setSubtab(mode));
+    document.querySelector(`[data-dt-find="${mode}"]`).addEventListener('click',()=>find(mode));
+    document.querySelector(`[data-dt-clear="${mode}"]`).addEventListener('click',()=>clear(mode));
+    $(`dt-${mode}-target`).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();find(mode);}});
+    $(`dt-${mode}-tolerance`).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();find(mode);}});
+    for(const btn of document.querySelectorAll(`[data-dt-palette="${mode}"] button[data-dt-color]`))btn.addEventListener('click',()=>selectColor(mode,btn.dataset.dtColor));
+    $(`dt-${mode}-color`).addEventListener('input',e=>selectColor(mode,e.target.value));
+    renderTable(mode);
+  }
+  window.AppDT={
+    appendRow(mode,first,second){
+      if(!['date','time'].includes(mode))throw Error('Неизвестная таблица');
+      const stateMode=state(mode);
+      const row={id:nextRowId++,first,second,values:null,error:''};
+      stateMode.rows.push(row);
+      stateMode.chosen=row.id;
+      renderTable(mode);
+      return row.id;
+    },
+    snapshot(){
+      return {activeMode,modes:Object.fromEntries(['date','time','number'].map(mode=>{
+        const s=state(mode);
+        return [mode,{rows:s.rows.map(r=>mode==='number'?{id:r.id,number:r.number,unit:r.unit}:{id:r.id,first:r.first,second:r.second}),chosen:s.chosen,active:s.active,color:s.color}];
+      }))};
+    },
+    restore(data){
+      if(!data?.modes)return;
+      for(const mode of ['date','time','number']){
+        const d=data.modes[mode];if(!d)continue;
+        const s=state(mode);
+        if(Array.isArray(d.rows)&&d.rows.length){s.rows=d.rows.slice(0,5000).map(r=>mode==='number'?{
+          id:nextRowId++,number:r.unit==='degree_seconds'&&parseDecimal(String(r.number??''),3)!==null?formatNumber(div(parseDecimal(String(r.number??''),3),F(360n)),3):String(r.number??''),unit:r.unit==='degree_seconds'?'seconds':(Object.hasOwn(inputUnitDays,r.unit)?r.unit:'days'),values:null,error:''
+        }:{id:nextRowId++,first:String(r.first??''),second:String(r.second??''),values:null,error:''});}
+        s.chosen=s.rows[0].id;
+        s.active=Boolean(d.active);s.color=d.color||'#d8f5df';
+        const parsed=parseSearch(mode,false);
+        if(parsed){s.target=parsed.target;s.allowance=parsed.allowance;}
+        else{s.active=false;s.target=null;s.allowance=null;}
+        selectColor(mode,s.color);renderTable(mode);
+      }
+      setSubtab(['date','time','number'].includes(data.activeMode)?data.activeMode:'date');
+    }
+  };
+  setSubtab('date');
+})();
+</script>
+<script>
+// v26: автосохранение и резервная копия; многолистный экспорт Excel XLSX.
+(() => {
+'use strict';
+const $=id=>document.getElementById(id);
+const storageKey='kalkulyator_vremeni_i_chisel_data_v1';
+let timer=null,restoring=false,storageAvailable=true;
+const inputIds=['gann-first','gann-second','wheel-base','wheel-target','wheel-tolerance','wheel-color','gem-text','dt-date-target','dt-date-tolerance','dt-time-target','dt-time-tolerance','dt-number-target','dt-number-tolerance'];
+function collect(){
+ const fields=Object.fromEntries(inputIds.map(id=>[id,$(id)?.value??'']));
+ return {
+  version:26,updated:new Date().toISOString(),
+  time:window.AppTime.snapshot(), dt:window.AppDT.snapshot(),
+  fields,global:window.AppGlobal.active(),scrollPositions:window.AppGlobal.snapshot(),
+  wheelActive: $('wheel-status').textContent.startsWith('Найдено:'),
+  dtColors:{date:$('dt-date-color').value,time:$('dt-time-color').value,number:$('dt-number-color').value}
+ };
+}
+function showSave(message,error=false){const node=$('app-save-status');node.textContent=message;node.style.color=error?'#aa3434':'#467067';}
+function saveNow(){
+ if(restoring)return;
+ try{localStorage.setItem(storageKey,JSON.stringify(collect()));storageAvailable=true;showSave('Сохранено автоматически в браузере');}
+ catch(error){storageAvailable=false;showSave('Хранение браузера недоступно — используйте «Экспорт данных»',true);}
+}
+function scheduleSave(){
+ if(restoring)return;
+ clearTimeout(timer);timer=setTimeout(saveNow,160);
+}
+function restoreState(data){
+ if(!data||typeof data!=='object')throw Error('Некорректная резервная копия данных');
+ restoring=true;
+ try{
+   for(const [id,value] of Object.entries(data.fields||{}))if($(id))$(id).value=String(value);
+   if(data.time)window.AppTime.restore(data.time);
+   for(const id of ['gann-first','gann-second','wheel-base','wheel-target','gem-text'])if($(id))$(id).dispatchEvent(new Event('input',{bubbles:true}));
+   for(const [mode,color] of Object.entries(data.dtColors||{})){
+     const input=$(`dt-${mode}-color`);if(input){input.value=color;input.dispatchEvent(new Event('input',{bubbles:true}));}
+   }
+   if(data.dt)window.AppDT.restore(data.dt);
+   $('wheel-color').dispatchEvent(new Event('input',{bubbles:true}));
+   if(data.wheelActive){$('wheel-form').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));}
+   if(['dates','gann','wheel','gem','dt'].includes(data.global))window.AppGlobal.select(data.global);
+   if(data.scrollPositions){
+     window.AppGlobal.restorePositions(data.scrollPositions);
+     window.AppGlobal.select(window.AppGlobal.active());
+   }
+ }finally{restoring=false;}
+ scheduleSave();
+}
+try{
+ const raw=localStorage.getItem(storageKey);
+ if(raw){restoreState(JSON.parse(raw));showSave('Введённые данные восстановлены');}
+ else showSave('Автосохранение в браузере включено');
+}catch(error){storageAvailable=false;showSave('Автосохранение недоступно — используйте «Экспорт данных»',true);}
+document.addEventListener('input',scheduleSave,true);
+document.addEventListener('change',scheduleSave,true);
+document.addEventListener('click',scheduleSave,true);
+document.addEventListener('app-data-modified',scheduleSave,true);
+window.addEventListener('pagehide',saveNow);
+function download(blob,filename){
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
+$('backup-json').addEventListener('click',()=>{
+ const json=JSON.stringify(collect(),null,2);
+ download(new Blob([json],{type:'application/json;charset=utf-8'}),'kalkulyator_dannye.json');
+ showSave('Резервная копия сохранена');
+});
+$('restore-json').addEventListener('click',()=>$('restore-json-file').click());
+$('restore-json-file').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+   const txt=await file.text();const value=JSON.parse(txt);
+   restoreState(value);saveNow();showSave('Данные из резервной копии загружены');
+ }catch(err){alert('Не удалось загрузить резервную копию: '+err.message)}
+ finally{e.target.value='';}
+});
+
+// Стандартный XLSX без внешних библиотек: Open XML Workbook в ZIP (Stored).
+const esc=str=>String(str??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function tableRows(tableId){
+ const table=$(tableId);if(!table)return [];
+ const heading=Array.from(table.querySelectorAll('thead tr:last-child th')).map(th=>th.textContent.trim());
+ const body=Array.from(table.querySelectorAll('tbody tr')).map(tr=>Array.from(tr.cells).map(td=>{
+   const input=td.querySelector('input[type="text"]');if(input)return input.value;
+   const select=td.querySelector('select');if(select)return select.options[select.selectedIndex]?.textContent.trim()||'';
+   return td.textContent.trim();
+ }));
+ return [heading,...body];
+}
+function gannRows(){
+ const rows=[['Квадрат 9 Ганна','Число 1','Число 2'],['Введённое число',$('gann-first').value,$('gann-second').value]];
+ const measurements=[['Корень','gann-root-'],['Ячеек на круге','gann-cells-'],['Градусов на ячейку','gann-step-'],['Количество ячеек от 0','gann-zero-cells-from-'],['Количество ячеек до 0','gann-zero-cells-to-'],['Количество градусов от 0','gann-zero-degrees-from-'],['Количество градусов до 0','gann-zero-degrees-to-']];
+ for(const [label,prefix] of measurements)rows.push([label,$(prefix+'1')?.textContent.trim()||'',$(prefix+'2')?.textContent.trim()||'']);
+ rows.push([],['Показатель','Значение']);
+ for(const [label,id] of [['Разница чисел','gann-difference'],['Процент изменения','gann-percent'],['Полная дельта','gann-delta-full'],['Дельта после оборотов','gann-delta-normalized']])rows.push([label,$(id)?.textContent.trim()||'']);
+ for(const n of [1,2]){
+   rows.push([],['Квадраты числа '+n,'Корень','Квадрат','Разница','Разница в градусах']);
+   for(const tr of $('gann-rows-'+n).querySelectorAll('tr'))rows.push(Array.from(tr.cells).map(td=>td.textContent.trim()));
+ }
+ return rows;
+}
+function gemRows(){
+ const rows=[['Текст',$('gem-text').value],['Система','Сумма','Нумерологическое число']];
+ for(const [name,suffix] of [['Английский','en'],['Русский древний','old'],['Русский','ru']])rows.push([name,$('gem-sum-'+suffix).textContent.trim(),$('gem-reduced-'+suffix).textContent.trim()]);
+ rows.push([],['Номер п/п','Англ. буква','Значение','Древний буква','Значение','Русская буква','Значение']);
+ for(const tr of $('gem-table').querySelectorAll('tbody tr'))rows.push(Array.from(tr.cells).map(td=>td.textContent.trim()));
+ return rows;
+}
+function numericCell(val){
+ if(typeof val==='number'&&Number.isFinite(val))return val;
+ if(typeof val!=='string')return null;
+ const clean=val.trim().replace(/[\u00a0\u202f\s]/g,'');
+ if(!/^[+-]?(?:\d{1,15})(?:[,.]\d{1,12})?$/.test(clean))return null;
+ const n=Number(clean.replace(',','.'));
+ return Number.isFinite(n)?n:null;
+}
+function columnName(index){let x=index+1,s='';while(x>0){x--;s=String.fromCharCode(65+x%26)+s;x=Math.floor(x/26);}return s;}
+function worksheetXml(rows){
+ const max=Math.max(1,...rows.map(r=>r.length));
+ const all=rows.map((cells,ri)=>{
+  const items=cells.map((v,ci)=>{
+    if(v===null||v===undefined||v==='')return '';
+    const ref=columnName(ci)+(ri+1), num=numericCell(v);
+    if(num!==null){
+      const decimal=String(v).match(/[,.](\d+)$/);const digits=decimal?.[1]?.length||0;
+      const style=digits>=4?2:digits>0?1:0;
+      return `<c r="${ref}" s="${style}"><v>${num}</v></c>`;
+    }
+    return `<c r="${ref}" t="inlineStr" s="0"><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
+  }).join('');
+  return `<row r="${ri+1}">${items}</row>`;
+ }).join('');
+ return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:'+columnName(max-1)+Math.max(rows.length,1)+'"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="16"/><cols><col min="1" max="2" width="20" customWidth="1"/><col min="3" max="'+max+'" width="17" customWidth="1"/></cols><sheetData>'+all+'</sheetData></worksheet>';
+}
+const utf8=new TextEncoder();
+function crc32(data){let crc=0xffffffff;for(const b of data){crc^=b;for(let n=0;n<8;n++)crc=(crc>>>1)^(crc&1?0xedb88320:0);}return(crc^0xffffffff)>>>0;}
+function zipFiles(entries){
+ const files=[],directory=[];let offset=0;
+ for(const [name,body] of entries){
+  const n=utf8.encode(name),d=utf8.encode(body),crc=crc32(d);
+  const local=new Uint8Array(30+n.length);let view=new DataView(local.buffer);
+  view.setUint32(0,0x04034b50,true);view.setUint16(4,20,true);view.setUint16(6,0x0800,true);view.setUint16(8,0,true);
+  view.setUint32(14,crc,true);view.setUint32(18,d.length,true);view.setUint32(22,d.length,true);view.setUint16(26,n.length,true);local.set(n,30);
+  files.push(local,d);
+  const central=new Uint8Array(46+n.length);view=new DataView(central.buffer);
+  view.setUint32(0,0x02014b50,true);view.setUint16(4,20,true);view.setUint16(6,20,true);view.setUint16(8,0x0800,true);view.setUint16(10,0,true);
+  view.setUint32(16,crc,true);view.setUint32(20,d.length,true);view.setUint32(24,d.length,true);view.setUint16(28,n.length,true);view.setUint32(42,offset,true);central.set(n,46);
+  directory.push(central);offset+=local.length+d.length;
+ }
+ const centralSize=directory.reduce((a,b)=>a+b.length,0),tail=new Uint8Array(22),view=new DataView(tail.buffer);
+ view.setUint32(0,0x06054b50,true);view.setUint16(8,directory.length,true);view.setUint16(10,directory.length,true);view.setUint32(12,centralSize,true);view.setUint32(16,offset,true);
+ return new Blob([...files,...directory,tail],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function excelFile(sheets){
+ const book='<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sheets.map((s,i)=>`<sheet name="${esc(s.name.substring(0,31))}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')+'</sheets></workbook>';
+ const rels='<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')+`<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+ const types='<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>';
+ const styles='<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="0.00"/><numFmt numFmtId="165" formatCode="0.0000"/></numFmts><fonts count="1"><font><sz val="10"/><name val="Aptos"/></font></fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" xfId="0"/><xf numFmtId="164" applyNumberFormat="1" xfId="0"/><xf numFmtId="165" applyNumberFormat="1" xfId="0"/></cellXfs></styleSheet>';
+ const entries=[['[Content_Types].xml',types],['_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],['xl/workbook.xml',book],['xl/_rels/workbook.xml.rels',rels],['xl/styles.xml',styles]];
+ sheets.forEach((s,i)=>entries.push([`xl/worksheets/sheet${i+1}.xml`,worksheetXml(s.rows)]));
+ return zipFiles(entries);
+}
+function getWorkbookSheets(){
+ const sheets=window.AppTime.exportSheets();
+ sheets.push({name:'Калькулятор чисел',rows:gannRows()});
+ sheets.push({name:'Колесо чисел',rows:[['Исходное число',$('wheel-base').value,'Искомое',$('wheel-target').value,'Погрешность, %',$('wheel-tolerance').value],[],...tableRows('wheel-table')]});
+ sheets.push({name:'Gematria',rows:gemRows()});
+ for(const [mode,name] of [['date','Интервалы - дата'],['time','Интервалы - время'],['number','Число времени']])sheets.push({name,rows:[['Искомое число',$(`dt-${mode}-target`).value,'Погрешность, %',$(`dt-${mode}-tolerance`).value],[],...tableRows(`dt-${mode}-table`)]});
+ return sheets;
+}
+$('export-excel').addEventListener('click',()=>{
+ const btn=$('export-excel');btn.disabled=true;
+ showSave('Формирование Excel…');
+ try{
+  const sheets=getWorkbookSheets(),blob=excelFile(sheets);
+  download(blob,'kalkulyator_vremeni_i_chisel.xlsx');
+  showSave(`Excel сформирован: ${sheets.length} листов`);
+ }catch(err){showSave('Ошибка экспорта Excel: '+err.message,true);alert('Ошибка экспорта Excel: '+err.message);}
+ finally{btn.disabled=false;}
+});
+})();
+
+</script>
+</body>
+</html>
